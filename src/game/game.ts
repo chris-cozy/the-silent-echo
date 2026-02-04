@@ -1,4 +1,5 @@
 import { ActionButtonState, NavigationState, UI } from "./ui.js";
+import { createRunSeed, createSeededRng, LogVariantService } from "./logVariants.js";
 import { GameState, IntroStage } from "./types.js";
 
 const BOOT_LINES = [
@@ -24,28 +25,6 @@ const HEALTH_DRAIN_SECONDS = 2;
 const LOOK_UNLOCK_HEALTH = 12;
 const LOOK_UNLOCK_HEAT = 18;
 
-const FREEZE_WARNING_LINES = [
-  "You are freezing...",
-  "Your skin is numb from the cold...",
-  "The cold digs deeper into your bones..."
-];
-
-const WARMING_LINES = {
-  thaw: "Your skin begins to thaw.",
-  grows: "The heat grows...",
-  warm: "Your body warms from the heat."
-};
-
-const LOOK_STEP_ONE_LINES = [
-  "You look around. The glow from the reactor reveals the pod you climbed out of. The glass is cracked. The power is on reserve.",
-  "You look around. Reactor light spills across the pod you climbed out of. The glass is fractured. The power is on reserve.",
-  "You look around. In the faint reactor glow you spot the pod you climbed out of. Cracks web the glass. The power is on reserve."
-];
-
-const AMBIENT_LINES = [
-  "You hear a faint scuttle from the darkness...",
-  "You hear a sharp scratch from the darkness..."
-];
 const AMBIENT_MIN_MS = 32000;
 const AMBIENT_MAX_MS = 65000;
 const AMBIENT_TRIGGER_CHANCE = 0.45;
@@ -97,6 +76,8 @@ export async function startGame(): Promise<void> {
 class Game {
   private ui: UI;
   private state: GameState;
+  private rng: () => number;
+  private logVariants: LogVariantService;
   private loopTimer: number | null;
   private lastTickMs: number;
   private stokeCooldownUntilMs: number;
@@ -111,6 +92,8 @@ class Game {
   constructor(ui: UI) {
     this.ui = ui;
     this.state = this.createInitialState();
+    this.rng = createSeededRng(this.state.runSeed);
+    this.logVariants = new LogVariantService(this.rng);
     this.loopTimer = null;
     this.lastTickMs = Date.now();
     this.stokeCooldownUntilMs = 0;
@@ -141,8 +124,8 @@ class Game {
     await this.ui.playBootSequence(BOOT_LINES);
 
     this.transitionTo("DARKNESS");
-    this.ui.logNarrative("The darkness is silent...");
-    this.ui.logNarrative("You see a machine in front of you, it's embers nearly dead...");
+    this.logNarrativeVariant("wake_silent");
+    this.logNarrativeVariant("wake_machine");
     this.startLoop();
     this.render();
   }
@@ -151,6 +134,8 @@ class Game {
     this.stopLoop();
     this.resetRuntimeCounters();
     this.state = this.createInitialState();
+    this.rng = createSeededRng(this.state.runSeed);
+    this.logVariants = new LogVariantService(this.rng);
     this.ui.clearLogs();
     this.ui.setDemoVisible(false);
     this.ui.setWakeVisible(true);
@@ -232,6 +217,7 @@ class Game {
 
   private createInitialState(): GameState {
     return {
+      runSeed: createRunSeed(),
       echoId: 3,
       stage: "LIFE_START",
       started: false,
@@ -267,43 +253,43 @@ class Game {
     if (!this.state.started) {
       this.state.started = true;
       this.state.heat = STOKE_START_HEAT;
-      this.ui.logNarrative("You stoke the glowing embers in the reactor before you...");
+      this.logNarrativeVariant("stoke_first");
     } else {
       this.state.heat = Math.min(this.state.heatCap, this.state.heat + STOKE_HEAT_GAIN);
-      this.ui.logNarrative("You feed the reactor and hold your hands over the heat.");
+      this.logNarrativeStickyVariant("stoke_repeat");
     }
 
     this.state.stokeCount += 1;
 
     if (this.state.stokeCount % STOKE_UPGRADE_EVERY === 0 && this.state.heatCap < STOKE_CAP_LIMIT) {
       this.state.heatCap = Math.min(STOKE_CAP_LIMIT, this.state.heatCap + STOKE_CAP_INCREMENT);
-      this.ui.logSystem("Reactor reserve grows stronger");
+      this.logSystemVariant("reserve_grows");
 
       if (this.state.heatCap === STOKE_CAP_LIMIT && !this.state.reserveLimitLogged) {
         this.state.reserveLimitLogged = true;
-        this.ui.logSystem("Reactor reserve has reached its limit");
+        this.logSystemVariant("reserve_limit");
       }
     }
 
     if (!this.state.thawLineShown && this.state.heat >= 10) {
       this.state.thawLineShown = true;
-      this.ui.logNarrative(WARMING_LINES.thaw);
+      this.logNarrativeVariant("thaw_line");
     }
 
     if (!this.state.growsLineShown && this.state.heat >= 18) {
       this.state.growsLineShown = true;
-      this.ui.logNarrative(WARMING_LINES.grows);
+      this.logNarrativeVariant("heat_grows_line");
     }
 
     if (!this.state.warmLineShown && this.state.heat >= 26) {
       this.state.warmLineShown = true;
-      this.ui.logNarrative(WARMING_LINES.warm);
+      this.logNarrativeVariant("body_warms_line");
     }
 
     if (!this.state.lookUnlocked && this.state.heat >= LOOK_UNLOCK_HEAT && this.state.health > LOOK_UNLOCK_HEALTH) {
       this.state.lookUnlocked = true;
       this.transitionTo("LOOK_UNLOCKED");
-      this.ui.logNarrative("Your eyes adjust to the faint light from the reactor.");
+      this.logNarrativeVariant("look_unlocked");
     }
 
     this.stokeCooldownUntilMs = Date.now() + STOKE_COOLDOWN_MS;
@@ -311,7 +297,7 @@ class Game {
 
   private lookAround(): void {
     if (!this.state.lookUnlocked || this.state.heat === 0) {
-      this.ui.logSystem("The darkness hides everything");
+      this.logSystemVariant("darkness_hides");
       return;
     }
 
@@ -319,14 +305,14 @@ class Game {
       this.state.revealStep = 1;
       this.state.currentLocationLabel = "A DARK SPACE";
       this.transitionTo("REVEAL_1");
-      this.ui.logNarrative(this.pickOne(LOOK_STEP_ONE_LINES));
+      this.logNarrativeVariant("look_step_1");
       return;
     }
 
     if (this.state.revealStep === 1) {
       this.state.revealStep = 2;
       this.transitionTo("BAND_AVAILABLE");
-      this.ui.logNarrative("You notice a dark band on the ground next to the large device.");
+      this.logNarrativeVariant("look_step_2");
       return;
     }
 
@@ -335,13 +321,11 @@ class Game {
       this.state.currentLocationLabel = "A DARK ROOM";
       this.state.navUnlocked = true;
       this.transitionTo("NAV_UNLOCKED");
-      this.ui.logNarrative(
-        "You notice walls all around you... you are in a room... a few feet away you see a doorway leading into darkness."
-      );
+      this.logNarrativeVariant("look_step_3");
       return;
     }
 
-    this.ui.logNarrative("You look around again, but don't notice anything new...");
+    this.logNarrativeVariant("look_repeat");
   }
 
   private takeBand(): void {
@@ -351,7 +335,7 @@ class Game {
 
     this.state.bandTaken = true;
     this.transitionTo("BAND_TAKEN");
-    this.ui.logNarrative("You take the band, and place it around your wrist. Its screen flickers on...");
+    this.logNarrativeVariant("band_taken");
   }
 
   private startLoop(): void {
@@ -397,8 +381,8 @@ class Game {
     this.applyAmbientLogs(delta);
 
     if (this.state.health <= 0) {
-      this.ui.logSystem("Vital signs flatline");
-      this.ui.logNarrative("You freeze before the station wakes.");
+      this.logSystemVariant("death_flatline");
+      this.logNarrativeVariant("death_freeze");
       this.restartRun();
       return;
     }
@@ -435,7 +419,7 @@ class Game {
 
       if (this.freezeWarningAccumulatorMs >= 5000) {
         this.freezeWarningAccumulatorMs = 0;
-        this.ui.logNarrative(this.pickOne(FREEZE_WARNING_LINES));
+        this.logNarrativeVariant("freeze_warning");
       }
 
       while (this.freezeAccumulatorMs >= HEALTH_DRAIN_SECONDS * 1000) {
@@ -456,7 +440,7 @@ class Game {
     if (!this.state.lookUnlocked && this.state.heat >= LOOK_UNLOCK_HEAT && this.state.health > LOOK_UNLOCK_HEALTH) {
       this.state.lookUnlocked = true;
       this.transitionTo("LOOK_UNLOCKED");
-      this.ui.logNarrative("Your eyes adjust to the faint light from the reactor.");
+      this.logNarrativeVariant("look_unlocked");
     }
   }
 
@@ -468,8 +452,8 @@ class Game {
 
     this.ambientAccumulatorMs = 0;
     this.nextAmbientAtMs = this.randomBetween(AMBIENT_MIN_MS, AMBIENT_MAX_MS);
-    if (Math.random() <= AMBIENT_TRIGGER_CHANCE) {
-      this.ui.logNarrative(this.pickOne(AMBIENT_LINES));
+    if (this.rng() <= AMBIENT_TRIGGER_CHANCE) {
+      this.logNarrativeVariant("ambient_noise");
     }
   }
 
@@ -555,11 +539,19 @@ class Game {
     return Math.max(0, this.stokeCooldownUntilMs - Date.now());
   }
 
-  private pickOne(options: string[]): string {
-    return options[Math.floor(Math.random() * options.length)];
+  private randomBetween(min: number, max: number): number {
+    return Math.floor(this.rng() * (max - min + 1)) + min;
   }
 
-  private randomBetween(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+  private logSystemVariant(key: string): void {
+    this.ui.logSystem(this.logVariants.pick(key));
+  }
+
+  private logNarrativeVariant(key: string): void {
+    this.ui.logNarrative(this.logVariants.pick(key));
+  }
+
+  private logNarrativeStickyVariant(key: string): void {
+    this.ui.logNarrative(this.logVariants.pickSticky(key));
   }
 }

@@ -44,6 +44,7 @@ export type IntroStage =
   | "DEMO_END";
 
 export interface GameState {
+  runSeed: number;
   echoId: number;
   stage: IntroStage;
   started: boolean;
