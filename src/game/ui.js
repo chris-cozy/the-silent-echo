@@ -2,10 +2,11 @@ const BOOT_DELAY_MS = 190;
 const LOG_TYPING_SPEED_MS = 9;
 const MAX_LOG_LINES = 20;
 export class UI {
-    constructor(onWake, onAction, onEnter, onRestart) {
+    constructor(onWake, onAction, onEnter, onDeathAcknowledge, onRestart) {
         this.onWake = onWake;
         this.onAction = onAction;
         this.onEnter = onEnter;
+        this.onDeathAcknowledge = onDeathAcknowledge;
         this.onRestart = onRestart;
         this.logQueue = [];
         this.logTyping = false;
@@ -23,7 +24,11 @@ export class UI {
         const bootScreenEl = document.getElementById("boot-screen");
         const bootLinesEl = document.getElementById("boot-lines");
         const bootProgressEl = document.getElementById("boot-progress");
+        const echoIdEl = document.getElementById("echo-id");
         const demoModalEl = document.getElementById("demo-modal");
+        const deathModalEl = document.getElementById("death-modal");
+        const deathMessageEl = document.getElementById("death-message");
+        const deathButtonEl = document.getElementById("death-button");
         const restartButtonEl = document.getElementById("restart-button");
         if (!roomTitleEl ||
             !actionsEl ||
@@ -39,7 +44,11 @@ export class UI {
             !bootScreenEl ||
             !bootLinesEl ||
             !bootProgressEl ||
+            !echoIdEl ||
             !demoModalEl ||
+            !deathModalEl ||
+            !deathMessageEl ||
+            !deathButtonEl ||
             !restartButtonEl) {
             throw new Error("UI elements missing");
         }
@@ -57,9 +66,14 @@ export class UI {
         this.bootScreenEl = bootScreenEl;
         this.bootLinesEl = bootLinesEl;
         this.bootProgressEl = bootProgressEl;
+        this.echoIdEl = echoIdEl;
         this.demoModalEl = demoModalEl;
+        this.deathModalEl = deathModalEl;
+        this.deathMessageEl = deathMessageEl;
+        this.deathButtonEl = deathButtonEl;
         this.restartButtonEl = restartButtonEl;
         this.wakeButtonEl.addEventListener("click", () => this.onWake());
+        this.deathButtonEl.addEventListener("click", () => this.onDeathAcknowledge());
         this.restartButtonEl.addEventListener("click", () => this.onRestart());
     }
     clearLogs() {
@@ -71,6 +85,15 @@ export class UI {
     }
     setDemoVisible(visible) {
         this.demoModalEl.classList.toggle("is-hidden", !visible);
+    }
+    setDeathVisible(visible) {
+        this.deathModalEl.classList.toggle("is-hidden", !visible);
+    }
+    setDeathMessage(text) {
+        this.deathMessageEl.textContent = text;
+    }
+    setEchoId(echoId) {
+        this.echoIdEl.textContent = `Echo-${echoId.toString().padStart(2, "0")}`;
     }
     setRoomTitle(title) {
         this.roomTitleEl.textContent = title;

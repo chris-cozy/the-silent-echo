@@ -131,6 +131,7 @@ body {
 .action-button,
 .nav-button,
 #wake-button,
+#death-button,
 #restart-button {
   border: 1px solid #5ad79a;
   background: rgba(112, 255, 185, 0.1);
@@ -176,6 +177,7 @@ body {
 .action-button:hover:not(:disabled),
 .nav-button:hover:not(:disabled),
 #wake-button:hover,
+#death-button:hover,
 #restart-button:hover {
   background: rgba(112, 255, 185, 0.2);
 }
@@ -218,7 +220,8 @@ body {
 
 .wake-screen,
 .boot-screen,
-.demo-modal {
+.demo-modal,
+.death-modal {
   position: absolute;
   inset: 0;
   display: grid;
@@ -229,7 +232,8 @@ body {
 
 .wake-card,
 .boot-screen__frame,
-.demo-modal__card {
+.demo-modal__card,
+.death-modal__card {
   border: 1px solid var(--border);
   background: rgba(8, 14, 10, 0.96);
   padding: 20px;
@@ -239,10 +243,15 @@ body {
 }
 
 .wake-card p,
-.demo-modal__card p {
+.demo-modal__card p,
+.death-modal__card p {
   margin: 0 0 16px;
   color: var(--text-dim);
   font-size: 1.1rem;
+}
+
+#death-message {
+  white-space: pre-line;
 }
 
 .boot-screen__title {

@@ -6,6 +6,7 @@ const BOOT_LINES = [
     "RESTORING LOG CHANNEL...",
     "MANUAL CONTROL REQUIRED"
 ];
+const INITIAL_ECHO_ID = 3;
 const START_TIME_MINUTES = 3 * 60;
 const TIME_ADVANCE_MINUTES_PER_SECOND = 5;
 const STOKE_COOLDOWN_MS = 2000;
@@ -39,6 +40,10 @@ export async function startGame() {
         }
     }, () => {
         if (game) {
+            game.acknowledgeDeath();
+        }
+    }, () => {
+        if (game) {
             game.restartRun();
         }
     });
@@ -59,7 +64,9 @@ export async function startGame() {
 class Game {
     constructor(ui) {
         this.ui = ui;
-        this.state = this.createInitialState();
+        this.currentEchoId = INITIAL_ECHO_ID;
+        this.pendingDeathEchoId = null;
+        this.state = this.createInitialState(this.currentEchoId);
         this.rng = createSeededRng(this.state.runSeed);
         this.logVariants = new LogVariantService(this.rng);
         this.loopTimer = null;
@@ -77,6 +84,7 @@ class Game {
         this.ui.clearLogs();
         this.ui.setWakeVisible(true);
         this.ui.setDemoVisible(false);
+        this.ui.setDeathVisible(false);
         this.render();
         this.stopLoop();
     }
@@ -88,6 +96,7 @@ class Game {
         this.ui.setWakeVisible(false);
         await this.ui.playBootSequence(BOOT_LINES);
         this.transitionTo("DARKNESS");
+        this.state.started = true;
         this.logNarrativeVariant("wake_silent");
         this.logNarrativeVariant("wake_machine");
         this.startLoop();
@@ -96,16 +105,29 @@ class Game {
     restartRun() {
         this.stopLoop();
         this.resetRuntimeCounters();
-        this.state = this.createInitialState();
+        this.state = this.createInitialState(this.currentEchoId);
         this.rng = createSeededRng(this.state.runSeed);
         this.logVariants = new LogVariantService(this.rng);
+        this.pendingDeathEchoId = null;
         this.ui.clearLogs();
         this.ui.setDemoVisible(false);
+        this.ui.setDeathVisible(false);
         this.ui.setWakeVisible(true);
         this.render();
     }
+    acknowledgeDeath() {
+        if (this.pendingDeathEchoId === null || this.state.stage !== "DEATH_PENDING") {
+            return;
+        }
+        this.currentEchoId = this.pendingDeathEchoId;
+        this.pendingDeathEchoId = null;
+        this.restartRun();
+    }
     handleAction(action) {
-        if (this.state.stage === "LIFE_START" || this.state.stage === "BOOTING" || this.state.stage === "DEMO_END") {
+        if (this.state.stage === "LIFE_START" ||
+            this.state.stage === "BOOTING" ||
+            this.state.stage === "DEATH_PENDING" ||
+            this.state.stage === "DEMO_END") {
             return;
         }
         switch (action) {
@@ -169,10 +191,10 @@ class Game {
         this.ui.setWakeVisible(false);
         this.render();
     }
-    createInitialState() {
+    createInitialState(echoId) {
         return {
             runSeed: createRunSeed(),
-            echoId: 3,
+            echoId,
             stage: "LIFE_START",
             started: false,
             currentLocationLabel: "DARKNESS",
@@ -201,8 +223,7 @@ class Game {
         if (remaining > 0) {
             return;
         }
-        if (!this.state.started) {
-            this.state.started = true;
+        if (this.state.stokeCount === 0) {
             this.state.heat = STOKE_START_HEAT;
             this.logNarrativeVariant("stoke_first");
         }
@@ -302,7 +323,7 @@ class Game {
         const now = Date.now();
         const delta = now - this.lastTickMs;
         this.lastTickMs = now;
-        if (!this.state.started || this.state.stage === "DEMO_END") {
+        if (!this.state.started || this.state.stage === "DEMO_END" || this.state.stage === "DEATH_PENDING") {
             return;
         }
         this.applyTimeProgress(delta);
@@ -311,7 +332,13 @@ class Game {
         if (this.state.health <= 0) {
             this.logSystemVariant("death_flatline");
             this.logNarrativeVariant("death_freeze");
-            this.restartRun();
+            this.transitionTo("DEATH_PENDING");
+            const nextEchoId = this.state.echoId + 1;
+            this.pendingDeathEchoId = nextEchoId;
+            this.ui.setDeathMessage(`You died. ${this.formatEchoId(this.state.echoId)} terminated.\nAcknowledge to initialize ${this.formatEchoId(nextEchoId)}.`);
+            this.ui.setDeathVisible(true);
+            this.stopLoop();
+            this.render();
             return;
         }
         this.render();
@@ -374,11 +401,13 @@ class Game {
         }
     }
     render() {
+        this.ui.setEchoId(this.state.echoId);
         this.ui.setRoomTitle(this.state.currentLocationLabel);
         this.ui.setActions(this.getActionButtons());
         this.ui.setVitals(this.state.bandTaken, this.formatVitals());
         this.ui.setMap(false, "");
         this.ui.setNavigation(this.getNavigationState());
+        this.ui.setDeathVisible(this.state.stage === "DEATH_PENDING");
         this.ui.setDemoVisible(this.state.demoComplete);
     }
     getActionButtons() {
@@ -445,6 +474,9 @@ class Game {
     }
     randomBetween(min, max) {
         return Math.floor(this.rng() * (max - min + 1)) + min;
+    }
+    formatEchoId(echoId) {
+        return `Echo-${echoId.toString().padStart(2, "0")}`;
     }
     logSystemVariant(key) {
         this.ui.logSystem(this.logVariants.pick(key));

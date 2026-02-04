@@ -41,6 +41,7 @@ export type IntroStage =
   | "BAND_TAKEN"
   | "REVEAL_3"
   | "NAV_UNLOCKED"
+  | "DEATH_PENDING"
   | "DEMO_END";
 
 export interface GameState {

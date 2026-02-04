@@ -38,11 +38,16 @@ export class UI {
   private bootScreenEl: HTMLElement;
   private bootLinesEl: HTMLElement;
   private bootProgressEl: HTMLElement;
+  private echoIdEl: HTMLElement;
   private demoModalEl: HTMLElement;
+  private deathModalEl: HTMLElement;
+  private deathMessageEl: HTMLElement;
+  private deathButtonEl: HTMLButtonElement;
   private restartButtonEl: HTMLButtonElement;
   private onWake: () => void;
   private onAction: (command: string) => void;
   private onEnter: () => void;
+  private onDeathAcknowledge: () => void;
   private onRestart: () => void;
   private logQueue: QueuedLog[];
   private logTyping: boolean;
@@ -51,11 +56,13 @@ export class UI {
     onWake: () => void,
     onAction: (command: string) => void,
     onEnter: () => void,
+    onDeathAcknowledge: () => void,
     onRestart: () => void
   ) {
     this.onWake = onWake;
     this.onAction = onAction;
     this.onEnter = onEnter;
+    this.onDeathAcknowledge = onDeathAcknowledge;
     this.onRestart = onRestart;
     this.logQueue = [];
     this.logTyping = false;
@@ -74,7 +81,11 @@ export class UI {
     const bootScreenEl = document.getElementById("boot-screen");
     const bootLinesEl = document.getElementById("boot-lines");
     const bootProgressEl = document.getElementById("boot-progress");
+    const echoIdEl = document.getElementById("echo-id");
     const demoModalEl = document.getElementById("demo-modal");
+    const deathModalEl = document.getElementById("death-modal");
+    const deathMessageEl = document.getElementById("death-message");
+    const deathButtonEl = document.getElementById("death-button") as HTMLButtonElement | null;
     const restartButtonEl = document.getElementById("restart-button") as HTMLButtonElement | null;
 
     if (
@@ -92,7 +103,11 @@ export class UI {
       !bootScreenEl ||
       !bootLinesEl ||
       !bootProgressEl ||
+      !echoIdEl ||
       !demoModalEl ||
+      !deathModalEl ||
+      !deathMessageEl ||
+      !deathButtonEl ||
       !restartButtonEl
     ) {
       throw new Error("UI elements missing");
@@ -112,10 +127,15 @@ export class UI {
     this.bootScreenEl = bootScreenEl;
     this.bootLinesEl = bootLinesEl;
     this.bootProgressEl = bootProgressEl;
+    this.echoIdEl = echoIdEl;
     this.demoModalEl = demoModalEl;
+    this.deathModalEl = deathModalEl;
+    this.deathMessageEl = deathMessageEl;
+    this.deathButtonEl = deathButtonEl;
     this.restartButtonEl = restartButtonEl;
 
     this.wakeButtonEl.addEventListener("click", () => this.onWake());
+    this.deathButtonEl.addEventListener("click", () => this.onDeathAcknowledge());
     this.restartButtonEl.addEventListener("click", () => this.onRestart());
   }
 
@@ -130,6 +150,18 @@ export class UI {
 
   setDemoVisible(visible: boolean): void {
     this.demoModalEl.classList.toggle("is-hidden", !visible);
+  }
+
+  setDeathVisible(visible: boolean): void {
+    this.deathModalEl.classList.toggle("is-hidden", !visible);
+  }
+
+  setDeathMessage(text: string): void {
+    this.deathMessageEl.textContent = text;
+  }
+
+  setEchoId(echoId: number): void {
+    this.echoIdEl.textContent = `Echo-${echoId.toString().padStart(2, "0")}`;
   }
 
   setRoomTitle(title: string): void {
