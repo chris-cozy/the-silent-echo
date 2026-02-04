@@ -1,0 +1,37 @@
+[
+  {
+    "id": "power_flicker",
+    "name": "Power flicker",
+    "weight": 3,
+    "delta": {"power": -1},
+    "log": "Power flickers in the corridor. A circuit trips."
+  },
+  {
+    "id": "cold_draft",
+    "name": "Cold draft",
+    "weight": 3,
+    "delta": {"heat": -1},
+    "log": "A cold draft seeps through the bulkhead seam."
+  },
+  {
+    "id": "filter_clog",
+    "name": "Filter clog",
+    "weight": 2,
+    "delta": {"air": -1},
+    "log": "The filtration unit coughs. Air quality dips."
+  },
+  {
+    "id": "condensation",
+    "name": "Condensation",
+    "weight": 2,
+    "delta": {"water": 1},
+    "log": "Condensation pools in a tray. You recover a little water."
+  },
+  {
+    "id": "ration_leak",
+    "name": "Ration leak",
+    "weight": 1,
+    "delta": {"food": -1},
+    "log": "A ration pack splits at the seal."
+  }
+]

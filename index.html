@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A Silent Echo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="app" id="app">
+      <header class="header">
+        <div class="header__echo" id="echo-id">Echo-03</div>
+        <div class="header__name" id="player-name">_____</div>
+      </header>
+
+      <main class="layout">
+        <section class="left-stack">
+          <section class="panel" id="room-panel">
+            <div class="panel__title" id="room-title">DARKNESS</div>
+            <div class="panel__body panel__body--actions" id="actions"></div>
+          </section>
+
+          <section class="panel is-hidden" id="vitals-panel">
+            <div class="panel__title">VITALS</div>
+            <div class="panel__body" id="vitals"></div>
+          </section>
+
+          <section class="panel is-hidden" id="map-panel">
+            <div class="panel__title">MAP</div>
+            <div class="panel__body panel__body--map" id="map"></div>
+          </section>
+
+          <section class="panel is-hidden" id="nav-panel">
+            <div class="panel__title">UNKNOWN PLACE</div>
+            <div class="panel__body panel__body--nav" id="nav"></div>
+          </section>
+        </section>
+
+        <section class="panel" id="log-panel">
+          <div class="panel__title">LOG</div>
+          <div class="panel__body panel__body--log" id="log"></div>
+        </section>
+      </main>
+
+      <div class="wake-screen" id="wake-screen">
+        <div class="wake-card">
+          <p>You are cold... too cold...</p>
+          <button id="wake-button" type="button">WAKE UP...</button>
+        </div>
+      </div>
+
+      <div class="boot-screen is-hidden" id="boot-screen">
+        <div class="boot-screen__frame">
+          <div class="boot-screen__title">ECHO INIT</div>
+          <div class="boot-screen__lines" id="boot-lines"></div>
+          <div class="boot-screen__meter"><span id="boot-progress"></span></div>
+        </div>
+      </div>
+
+      <div class="demo-modal is-hidden" id="demo-modal">
+        <div class="demo-modal__card">
+          <p>Thank you for playing the demo of A Silent Echo.</p>
+          <button id="restart-button" type="button">RESTART RUN</button>
+        </div>
+      </div>
+
+      <div class="scanlines"></div>
+      <div class="noise"></div>
+      <div class="glow"></div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

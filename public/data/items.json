@@ -1,0 +1,9 @@
+[
+  {"id": "parts", "name": "Parts", "type": "material"},
+  {"id": "scrap", "name": "Scrap", "type": "material"},
+  {"id": "water", "name": "Water", "type": "consumable"},
+  {"id": "rations", "name": "Rations", "type": "consumable"},
+  {"id": "battery", "name": "Battery", "type": "crafted"},
+  {"id": "filter", "name": "Filter", "type": "crafted"},
+  {"id": "heater", "name": "Heater", "type": "crafted"}
+]

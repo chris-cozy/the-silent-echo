@@ -1,0 +1,20 @@
+[
+  {
+    "id": "battery",
+    "name": "Battery",
+    "cost": {"parts": 2, "scrap": 1},
+    "effect": {"powerMax": 1, "power": 1}
+  },
+  {
+    "id": "filter",
+    "name": "Filter",
+    "cost": {"parts": 1, "scrap": 1},
+    "effect": {"airMax": 2, "air": 1}
+  },
+  {
+    "id": "heater",
+    "name": "Heater",
+    "cost": {"parts": 1, "scrap": 2},
+    "effect": {"heatMax": 2, "heat": 1}
+  }
+]

@@ -1,0 +1,39 @@
+[
+  {
+    "id": "cryo",
+    "name": "Cryo / Intake",
+    "adjacent": ["maintenance"],
+    "powerCost": 1,
+    "repairCost": 0,
+    "starting": true
+  },
+  {
+    "id": "maintenance",
+    "name": "Maintenance Bay",
+    "adjacent": ["cryo", "control", "power_access"],
+    "powerCost": 1,
+    "repairCost": 2
+  },
+  {
+    "id": "control",
+    "name": "Control Room",
+    "adjacent": ["maintenance", "life_support"],
+    "powerCost": 2,
+    "repairCost": 3
+  },
+  {
+    "id": "life_support",
+    "name": "Life Support",
+    "adjacent": ["control"],
+    "powerCost": 2,
+    "repairCost": 3
+  },
+  {
+    "id": "power_access",
+    "name": "Power Access",
+    "adjacent": ["maintenance"],
+    "powerCost": 0,
+    "repairCost": 3,
+    "grantsPowerCapacity": 4
+  }
+]
