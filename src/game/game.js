@@ -454,8 +454,13 @@ class Game {
         }
         if (darknessRoom.lookStep === 3) {
             darknessRoom.lookStep = 4;
-            darknessRoom.tabletDiscovered = true;
-            this.logNarrativeVariant("darkness_look_4");
+            if (!darknessRoom.tabletDiscovered && !darknessRoom.tabletTaken) {
+                darknessRoom.tabletDiscovered = true;
+                this.logNarrativeVariant("darkness_look_4");
+            }
+            else {
+                this.logNarrativeVariant("darkness_look_4_docs");
+            }
             return;
         }
         this.logNarrativeVariant("darkness_look_repeat");
