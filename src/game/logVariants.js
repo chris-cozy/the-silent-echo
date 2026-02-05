@@ -168,7 +168,7 @@ const CATALOG = {
     ],
     darkness_look_4_docs: [
         { text: "Near your feet, ruined documents are scattered across the floor." },
-        { text: "Ruined papers cover the floor around your boots." }
+        { text: "Ruined papers cover the floor around your feet." }
     ],
     darkness_look_repeat: [
         { text: "You scan the room again, but nothing new stands out..." },

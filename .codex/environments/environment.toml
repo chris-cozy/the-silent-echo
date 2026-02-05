@@ -17,3 +17,8 @@ npm run dev
 name = "Test"
 icon = "test"
 command = "npm test"
+
+[[actions]]
+name = "Build"
+icon = "tool"
+command = "npm run build"

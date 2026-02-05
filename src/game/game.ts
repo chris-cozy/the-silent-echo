@@ -61,7 +61,7 @@ export async function startGame(): Promise<void> {
   game.init();
 
   if (import.meta.env.DEV) {
-    (window as unknown as { __aseDebug?: Record<string, (...args: unknown[]) => void> }).__aseDebug = {
+    const debugApi: DebugApi = {
       boostVitals: () => {
         game?.debugBoostVitals();
       },
@@ -120,8 +120,32 @@ export async function startGame(): Promise<void> {
         game?.debugResumeLoop();
       }
     };
+
+    (window as unknown as { __aseDebug?: DebugApi }).__aseDebug = debugApi;
   }
 }
+
+type DebugApi = {
+  boostVitals: () => void;
+  unlockLook: () => void;
+  jumpReveal3: () => void;
+  setHeat: (value: number) => void;
+  setHealth: (value: number) => void;
+  setHeatCap: (value: number) => void;
+  setTimeMinutes: (value: number) => void;
+  setRoom: (roomId: RoomId) => void;
+  setRevealStep: (step: number) => void;
+  setFeelStep: (step: number) => void;
+  setLookStep: (step: number) => void;
+  setNavUnlocked: (value: boolean) => void;
+  setLeverPulled: (value: boolean) => void;
+  setPullLeverUnlocked: (value: boolean) => void;
+  setPartialDoorDiscovered: (value: boolean) => void;
+  setTabletTaken: (value: boolean) => void;
+  fastForward: (ms: number) => void;
+  pauseLoop: () => void;
+  resumeLoop: () => void;
+};
 
 class Game {
   private ui: UI;
