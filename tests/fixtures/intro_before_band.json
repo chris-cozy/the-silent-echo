@@ -1,0 +1,42 @@
+{
+  "runSeed": 101,
+  "echoId": 3,
+  "stage": "REVEAL_1",
+  "started": true,
+  "currentRoomId": "dark_room",
+  "playerName": "_____",
+  "rooms": {
+    "dark_room": {
+      "id": "dark_room",
+      "displayName": "A DARK SPACE",
+      "entered": true,
+      "lookUnlocked": true,
+      "revealStep": 1,
+      "bandTaken": false
+    },
+    "darkness": {
+      "id": "darkness",
+      "displayName": "DARKNESS",
+      "entered": false,
+      "feelStep": 0,
+      "lookStep": 0,
+      "leverPulled": false,
+      "pullLeverUnlocked": false,
+      "partialDoorDiscovered": false,
+      "tabletDiscovered": false,
+      "tabletTaken": false
+    }
+  },
+  "heat": 22,
+  "heatCap": 20,
+  "health": 18,
+  "maxHealth": 100,
+  "timeMinutes": 200,
+  "stokeCount": 2,
+  "navUnlocked": false,
+  "demoComplete": false,
+  "thawLineShown": true,
+  "growsLineShown": true,
+  "warmLineShown": false,
+  "reserveLimitLogged": false
+}

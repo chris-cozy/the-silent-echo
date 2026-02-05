@@ -1,0 +1,42 @@
+{
+  "runSeed": 104,
+  "echoId": 3,
+  "stage": "NAV_UNLOCKED",
+  "started": true,
+  "currentRoomId": "darkness",
+  "playerName": "_____",
+  "rooms": {
+    "dark_room": {
+      "id": "dark_room",
+      "displayName": "A DARK ROOM",
+      "entered": true,
+      "lookUnlocked": true,
+      "revealStep": 3,
+      "bandTaken": true
+    },
+    "darkness": {
+      "id": "darkness",
+      "displayName": "A DIMLY LIT ROOM",
+      "entered": true,
+      "feelStep": 2,
+      "lookStep": 1,
+      "leverPulled": true,
+      "pullLeverUnlocked": true,
+      "partialDoorDiscovered": false,
+      "tabletDiscovered": false,
+      "tabletTaken": false
+    }
+  },
+  "heat": 16,
+  "heatCap": 25,
+  "health": 30,
+  "maxHealth": 100,
+  "timeMinutes": 290,
+  "stokeCount": 4,
+  "navUnlocked": true,
+  "demoComplete": false,
+  "thawLineShown": true,
+  "growsLineShown": true,
+  "warmLineShown": true,
+  "reserveLimitLogged": false
+}

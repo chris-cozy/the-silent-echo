@@ -12,3 +12,13 @@ command = '''
 npm install
 npm run dev
 '''
+
+[[actions]]
+name = "Test"
+icon = "test"
+command = "npm test"
+
+[[actions]]
+name = "Build"
+icon = "tool"
+command = "npm run build"

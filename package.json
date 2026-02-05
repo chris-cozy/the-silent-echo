@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test",
+    "test:watch": "node --test --watch",
+    "test:smoke": "node --test tests/smoke.test.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
