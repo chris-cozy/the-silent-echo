@@ -15,7 +15,7 @@ Deterministic game core:
 - serializable state construction,
 - action and navigation reducers,
 - tick progression and survival math,
-- derived UI model for actions/navigation/vitals,
+- derived UI model for actions/navigation/vitals/storage/AI,
 - run-seeded ambient log triggering (via injected RNG).
 
 ### `src/game/game.ts`
@@ -66,7 +66,7 @@ Infrastructure modules currently available for future integration:
 
 Main UI structure in `index.html`:
 - header (`Echo-03`, player placeholder),
-- left stack (room/actions, vitals, map, navigation),
+- left stack (room/actions, vitals band, storage, AI, map, navigation),
 - right log panel,
 - overlays (wake, boot, demo end),
 - visual layers (scanlines/noise/glow).
@@ -75,6 +75,8 @@ Current behavior notes:
 - map panel exists but is rendered hidden in the current loop,
 - nav panel appears only when reveal progression reaches doorway unlock,
 - vitals panel appears after wrist band acquisition.
+- storage panel persists and lists acquired items,
+- AI panel appears after terminal inspection.
 
 ## Data layout
 

@@ -1,36 +1,36 @@
 {
-  "runSeed": 101,
+  "runSeed": 304,
   "echoId": 3,
-  "stage": "REVEAL_1",
+  "stage": "NAV_UNLOCKED",
   "started": true,
   "currentRoomId": "dark_room",
   "playerName": "_____",
   "rooms": {
     "dark_room": {
       "id": "dark_room",
-      "displayName": "A DARK SPACE",
+      "displayName": "A DARK ROOM",
       "entered": true,
       "lookUnlocked": true,
-      "revealStep": 1,
-      "bandTaken": false,
+      "revealStep": 3,
+      "bandTaken": true,
       "podRoomRevealed": false
     },
     "darkness": {
       "id": "darkness",
-      "displayName": "DARKNESS",
-      "entered": false,
-      "feelStep": 0,
-      "lookStep": 0,
-      "leverPulled": false,
-      "pullLeverUnlocked": false,
-      "partialDoorDiscovered": false,
+      "displayName": "TERMINAL ROOM",
+      "entered": true,
+      "feelStep": 2,
+      "lookStep": 3,
+      "leverPulled": true,
+      "pullLeverUnlocked": true,
+      "partialDoorDiscovered": true,
       "tabletDiscovered": false,
       "tabletTaken": false,
-      "inspectTerminalsStep": 0
+      "inspectTerminalsStep": 1
     }
   },
   "inventory": {
-    "items": [],
+    "items": ["band"],
     "resources": {}
   },
   "ai": {
@@ -39,16 +39,16 @@
     "reason": "EMERGENCY POWER RESERVES INSUFFICIENT",
     "offlineAnnounced": false
   },
-  "heat": 22,
-  "heatCap": 20,
-  "health": 18,
+  "heat": 18,
+  "heatCap": 40,
+  "health": 28,
   "maxHealth": 100,
-  "timeMinutes": 200,
-  "stokeCount": 2,
-  "navUnlocked": false,
+  "timeMinutes": 242,
+  "stokeCount": 6,
+  "navUnlocked": true,
   "demoComplete": false,
   "thawLineShown": true,
   "growsLineShown": true,
-  "warmLineShown": false,
+  "warmLineShown": true,
   "reserveLimitLogged": false
 }

@@ -79,6 +79,13 @@ Guidelines:
 - Fixture tests should load the JSON and run a minimal script to validate invariants.
 - Fixtures store `GameState` only; runtime counters are re-initialized in tests.
 
+Recent fixture additions:
+- `after_band_with_storage.json`
+- `terminal_room_terminals_discovered.json`
+- `ai_unlocked.json`
+- `lever_pulled_before_return_to_start.json`
+- `pod_room_revealed.json`
+
 ## Headless smoke test
 
 `tests/smoke.test.js` runs a short deterministic loop with seeded RNG and basic actions:

@@ -1,7 +1,7 @@
 {
-  "runSeed": 101,
+  "runSeed": 301,
   "echoId": 3,
-  "stage": "REVEAL_1",
+  "stage": "BAND_TAKEN",
   "started": true,
   "currentRoomId": "dark_room",
   "playerName": "_____",
@@ -11,8 +11,8 @@
       "displayName": "A DARK SPACE",
       "entered": true,
       "lookUnlocked": true,
-      "revealStep": 1,
-      "bandTaken": false,
+      "revealStep": 2,
+      "bandTaken": true,
       "podRoomRevealed": false
     },
     "darkness": {
@@ -30,7 +30,7 @@
     }
   },
   "inventory": {
-    "items": [],
+    "items": ["band"],
     "resources": {}
   },
   "ai": {
@@ -39,11 +39,11 @@
     "reason": "EMERGENCY POWER RESERVES INSUFFICIENT",
     "offlineAnnounced": false
   },
-  "heat": 22,
+  "heat": 15,
   "heatCap": 20,
-  "health": 18,
+  "health": 20,
   "maxHealth": 100,
-  "timeMinutes": 200,
+  "timeMinutes": 210,
   "stokeCount": 2,
   "navUnlocked": false,
   "demoComplete": false,
