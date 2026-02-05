@@ -9,19 +9,23 @@
 
 ## Core modules
 
+### `src/game/engine.ts`
+
+Deterministic game core:
+- serializable state construction,
+- action and navigation reducers,
+- tick progression and survival math,
+- derived UI model for actions/navigation/vitals,
+- run-seeded ambient log triggering (via injected RNG).
+
 ### `src/game/game.ts`
 
-Owns game state and progression logic:
-- intro state machine,
-- survival timers and accumulators,
-- action handling,
-- unlock gates,
-- render payload construction for UI.
-
-Important characteristics:
-- fixed simulation tick (`TICK_MS = 250`),
-- separate accumulators for heat decay, health regen/drain, ambient events, and clock time,
-- deterministic log variation per run via a seeded RNG.
+Runtime wrapper around the deterministic core:
+- boot sequence and lifecycle wiring,
+- timer scheduling and real-time tick integration,
+- mapping engine log keys to narrative/system text,
+- UI updates and modal control.
+Runtime scheduling uses a fixed tick (`TICK_MS = 250`) and forwards elapsed time to the engine.
 
 ### `src/game/ui.ts`
 

@@ -11,6 +11,7 @@ The current build is an interactive vertical-slice intro focused on atmosphere, 
 - [Gameplay Systems](documentation/gameplay-systems.md)
 - [Content Data Model](documentation/content-data.md)
 - [Development Guide](documentation/development.md)
+- [Testing Strategy](documentation/testing.md)
 - [Original Design Spec](documentation/game-spec.md)
 
 ## Quick start
@@ -27,6 +28,7 @@ Open the Vite URL printed in the terminal (usually `http://localhost:5173`).
 - `npm run dev` starts local development server.
 - `npm run build` runs TypeScript compile and Vite production build.
 - `npm run preview` serves the built app locally.
+- `npm test` runs the automated test suite.
 
 ## Tech stack
 

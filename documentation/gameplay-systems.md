@@ -77,4 +77,4 @@ Available on `window.__aseDebug`:
 - `unlockLook()`
 - `jumpReveal3()`
 
-These shortcuts are intended for iteration and UI testing.
+Additional setters (vitals, room jumps, reveal steps, fast-forward) are documented in `documentation/development.md`.
