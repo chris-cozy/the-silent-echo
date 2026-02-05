@@ -1,6 +1,6 @@
 import { ActionButtonState, NavigationState, UI } from "./ui.js";
 import { createRunSeed, createSeededRng, LogVariantService } from "./logVariants.js";
-import { GameState, IntroStage } from "./types.js";
+import { GameState, IntroStage, RoomId } from "./types.js";
 
 const BOOT_LINES = [
   "SYNCING ECHO MEMORY...",
@@ -12,6 +12,14 @@ const BOOT_LINES = [
 const INITIAL_ECHO_ID = 3;
 const START_TIME_MINUTES = 3 * 60;
 const TIME_ADVANCE_MINUTES_PER_SECOND = 5;
+
+const ROOM_DARK_ROOM = "dark_room" as const;
+const ROOM_DARKNESS = "darkness" as const;
+const NAV_PARTIAL_DOOR = "partial_door";
+const DARK_ROOM_LABEL = "A DARK ROOM";
+const DARKNESS_LABEL = "DARKNESS";
+const DARKNESS_DOORWAY_LABEL = "DARKNESS THROUGH THE DOORWAY";
+const PARTIAL_DOOR_LABEL = "PARTIALLY CLOSED DOORWAY INTO DARKNESS";
 
 const STOKE_COOLDOWN_MS = 2000;
 const HEAT_DECAY_PER_SECOND = 1;
@@ -46,9 +54,9 @@ export async function startGame(): Promise<void> {
         game.handleAction(action);
       }
     },
-    () => {
+    (targetId) => {
       if (game) {
-        game.enterDoorway();
+        game.enterLocation(targetId);
       }
     },
     () => {
@@ -183,8 +191,17 @@ class Game {
       case "look around":
         this.lookAround();
         break;
+      case "feel around":
+        this.feelAround();
+        break;
+      case "pull lever":
+        this.pullLever();
+        break;
       case "take band":
         this.takeBand();
+        break;
+      case "pick up tablet":
+        this.pickUpTablet();
         break;
       default:
         break;
@@ -193,22 +210,52 @@ class Game {
     this.render();
   }
 
-  enterDoorway(): void {
-    if (!this.state.navUnlocked || this.state.stage === "DEMO_END") {
+  enterLocation(targetId: string): void {
+    if (!this.state.navUnlocked || this.state.stage === "DEMO_END" || this.state.stage === "DEATH_PENDING") {
       return;
     }
 
-    this.transitionTo("DEMO_END");
-    this.state.demoComplete = true;
-    this.stopLoop();
-    this.ui.setDemoVisible(true);
+    if (targetId === NAV_PARTIAL_DOOR) {
+      this.transitionTo("DEMO_END");
+      this.state.demoComplete = true;
+      this.stopLoop();
+      this.ui.setDemoVisible(true);
+      return;
+    }
+
+    if (targetId !== ROOM_DARK_ROOM && targetId !== ROOM_DARKNESS) {
+      return;
+    }
+
+    if (this.state.currentRoomId === targetId) {
+      return;
+    }
+
+    this.state.currentRoomId = targetId;
+    if (targetId === ROOM_DARKNESS) {
+      if (!this.state.rooms.darkness.entered) {
+        this.state.rooms.darkness.entered = true;
+        this.logNarrativeVariant("enter_darkness");
+      } else {
+        this.logNarrativeVariant(this.getReturnLogKeyForDarkness());
+      }
+    }
+
+    if (targetId === ROOM_DARK_ROOM) {
+      if (!this.state.rooms.dark_room.entered) {
+        this.state.rooms.dark_room.entered = true;
+      } else {
+        this.logNarrativeVariant(this.getReturnLogKeyForDarkRoom());
+      }
+    }
+    this.render();
   }
 
   debugBoostVitals(): void {
     this.state.started = true;
     this.state.heat = 35;
     this.state.health = 45;
-    this.state.lookUnlocked = true;
+    this.state.rooms.dark_room.lookUnlocked = true;
     if (this.state.stage === "LIFE_START") {
       this.transitionTo("LOOK_UNLOCKED");
       this.startLoop();
@@ -221,7 +268,7 @@ class Game {
     this.state.started = true;
     this.state.heat = 30;
     this.state.health = 30;
-    this.state.lookUnlocked = true;
+    this.state.rooms.dark_room.lookUnlocked = true;
     if (this.state.stage === "LIFE_START") {
       this.transitionTo("LOOK_UNLOCKED");
       this.startLoop();
@@ -232,11 +279,13 @@ class Game {
 
   debugJumpReveal3(): void {
     this.state.started = true;
-    this.state.lookUnlocked = true;
-    this.state.revealStep = 3;
-    this.state.bandTaken = true;
+    const darkRoom = this.state.rooms.dark_room;
+    darkRoom.lookUnlocked = true;
+    darkRoom.revealStep = 3;
+    darkRoom.bandTaken = true;
+    darkRoom.displayName = DARK_ROOM_LABEL;
     this.state.navUnlocked = true;
-    this.state.currentLocationLabel = "A DARK ROOM";
+    this.state.currentRoomId = ROOM_DARK_ROOM;
     this.state.heatCap = 120;
     this.transitionTo("NAV_UNLOCKED");
     this.startLoop();
@@ -250,16 +299,36 @@ class Game {
       echoId,
       stage: "LIFE_START",
       started: false,
-      currentLocationLabel: "DARKNESS",
+      currentRoomId: ROOM_DARK_ROOM,
+      playerName: "_____",
+      rooms: {
+        dark_room: {
+          id: "dark_room",
+          displayName: "DARKNESS",
+          entered: true,
+          lookUnlocked: false,
+          revealStep: 0,
+          bandTaken: false
+        },
+        darkness: {
+          id: "darkness",
+          displayName: "DARKNESS",
+          entered: false,
+          feelStep: 0,
+          lookStep: 0,
+          leverPulled: false,
+          pullLeverUnlocked: false,
+          partialDoorDiscovered: false,
+          tabletDiscovered: false,
+          tabletTaken: false
+        }
+      },
       heat: 0,
       heatCap: 20,
       health: 5,
       maxHealth: 100,
       timeMinutes: START_TIME_MINUTES,
       stokeCount: 0,
-      lookUnlocked: false,
-      revealStep: 0,
-      bandTaken: false,
       navUnlocked: false,
       demoComplete: false,
       thawLineShown: false,
@@ -274,10 +343,16 @@ class Game {
   }
 
   private stokeReactor(): void {
+    if (this.state.currentRoomId !== ROOM_DARK_ROOM) {
+      return;
+    }
+
     const remaining = this.getStokeCooldownRemainingMs();
     if (remaining > 0) {
       return;
     }
+
+    const darkRoom = this.state.rooms.dark_room;
 
     if (this.state.stokeCount === 0) {
       this.state.heat = STOKE_START_HEAT;
@@ -314,8 +389,8 @@ class Game {
       this.logNarrativeVariant("body_warms_line");
     }
 
-    if (!this.state.lookUnlocked && this.state.heat >= LOOK_UNLOCK_HEAT && this.state.health > LOOK_UNLOCK_HEALTH) {
-      this.state.lookUnlocked = true;
+    if (!darkRoom.lookUnlocked && this.state.heat >= LOOK_UNLOCK_HEAT && this.state.health > LOOK_UNLOCK_HEALTH) {
+      darkRoom.lookUnlocked = true;
       this.transitionTo("LOOK_UNLOCKED");
       this.logNarrativeVariant("look_unlocked");
     }
@@ -324,29 +399,49 @@ class Game {
   }
 
   private lookAround(): void {
-    if (!this.state.lookUnlocked || this.state.heat === 0) {
+    if (this.state.currentRoomId === ROOM_DARK_ROOM) {
+      this.lookAroundDarkRoom();
+    } else {
+      this.lookAroundDarkness();
+    }
+  }
+
+  private takeBand(): void {
+    const darkRoom = this.state.rooms.dark_room;
+    if (darkRoom.revealStep < 2 || darkRoom.bandTaken) {
+      return;
+    }
+
+    darkRoom.bandTaken = true;
+    this.transitionTo("BAND_TAKEN");
+    this.logNarrativeVariant("band_taken");
+  }
+
+  private lookAroundDarkRoom(): void {
+    const darkRoom = this.state.rooms.dark_room;
+    if (!darkRoom.lookUnlocked || this.state.heat === 0) {
       this.logSystemVariant("darkness_hides");
       return;
     }
 
-    if (this.state.revealStep === 0) {
-      this.state.revealStep = 1;
-      this.state.currentLocationLabel = "A DARK SPACE";
+    if (darkRoom.revealStep === 0) {
+      darkRoom.revealStep = 1;
+      darkRoom.displayName = "A DARK SPACE";
       this.transitionTo("REVEAL_1");
       this.logNarrativeVariant("look_step_1");
       return;
     }
 
-    if (this.state.revealStep === 1) {
-      this.state.revealStep = 2;
+    if (darkRoom.revealStep === 1) {
+      darkRoom.revealStep = 2;
       this.transitionTo("BAND_AVAILABLE");
       this.logNarrativeVariant("look_step_2");
       return;
     }
 
-    if (this.state.revealStep === 2) {
-      this.state.revealStep = 3;
-      this.state.currentLocationLabel = "A DARK ROOM";
+    if (darkRoom.revealStep === 2) {
+      darkRoom.revealStep = 3;
+      darkRoom.displayName = DARK_ROOM_LABEL;
       this.state.navUnlocked = true;
       this.transitionTo("NAV_UNLOCKED");
       this.logNarrativeVariant("look_step_3");
@@ -356,14 +451,122 @@ class Game {
     this.logNarrativeVariant("look_repeat");
   }
 
-  private takeBand(): void {
-    if (this.state.revealStep < 2 || this.state.bandTaken) {
+  private feelAround(): void {
+    if (this.state.currentRoomId !== ROOM_DARKNESS) {
       return;
     }
 
-    this.state.bandTaken = true;
-    this.transitionTo("BAND_TAKEN");
-    this.logNarrativeVariant("band_taken");
+    const darknessRoom = this.state.rooms.darkness;
+    if (darknessRoom.leverPulled) {
+      this.logNarrativeVariant("feel_repeat");
+      return;
+    }
+
+    if (darknessRoom.feelStep === 0) {
+      darknessRoom.feelStep = 1;
+      this.logNarrativeVariant("feel_step_1");
+      return;
+    }
+
+    if (darknessRoom.feelStep === 1) {
+      darknessRoom.feelStep = 2;
+      darknessRoom.pullLeverUnlocked = true;
+      this.logNarrativeVariant("feel_step_2");
+      return;
+    }
+
+    if (darknessRoom.feelStep === 2) {
+      darknessRoom.feelStep = 3;
+      this.logNarrativeVariant("feel_step_3");
+      return;
+    }
+
+    if (darknessRoom.feelStep === 3) {
+      darknessRoom.feelStep = 4;
+      darknessRoom.partialDoorDiscovered = true;
+      this.logNarrativeVariant("feel_step_4");
+      return;
+    }
+
+    if (darknessRoom.feelStep === 4) {
+      darknessRoom.feelStep = 5;
+      darknessRoom.tabletDiscovered = true;
+      this.logNarrativeVariant("feel_step_5");
+      return;
+    }
+
+    this.logNarrativeVariant("feel_repeat");
+  }
+
+  private pullLever(): void {
+    if (this.state.currentRoomId !== ROOM_DARKNESS) {
+      return;
+    }
+
+    const darknessRoom = this.state.rooms.darkness;
+    if (!darknessRoom.pullLeverUnlocked || darknessRoom.leverPulled) {
+      return;
+    }
+
+    darknessRoom.leverPulled = true;
+    this.logNarrativeVariant("pull_lever");
+  }
+
+  private lookAroundDarkness(): void {
+    if (this.state.currentRoomId !== ROOM_DARKNESS) {
+      return;
+    }
+
+    const darknessRoom = this.state.rooms.darkness;
+    if (!darknessRoom.leverPulled) {
+      this.logNarrativeVariant("feel_repeat");
+      return;
+    }
+
+    if (darknessRoom.lookStep === 0) {
+      darknessRoom.lookStep = 1;
+      darknessRoom.displayName = "A DIMLY LIT ROOM";
+      this.logNarrativeVariant("darkness_look_1");
+      return;
+    }
+
+    if (darknessRoom.lookStep === 1) {
+      darknessRoom.lookStep = 2;
+      darknessRoom.partialDoorDiscovered = true;
+      this.logNarrativeVariant("darkness_look_2");
+      return;
+    }
+
+    if (darknessRoom.lookStep === 2) {
+      darknessRoom.lookStep = 3;
+      darknessRoom.displayName = "TERMINAL ROOM";
+      this.logNarrativeVariant("darkness_look_3");
+      return;
+    }
+
+    if (darknessRoom.lookStep === 3) {
+      darknessRoom.lookStep = 4;
+      darknessRoom.tabletDiscovered = true;
+      this.logNarrativeVariant("darkness_look_4");
+      return;
+    }
+
+    this.logNarrativeVariant("darkness_look_repeat");
+  }
+
+  private pickUpTablet(): void {
+    if (this.state.currentRoomId !== ROOM_DARKNESS) {
+      return;
+    }
+
+    const darknessRoom = this.state.rooms.darkness;
+    if (!darknessRoom.tabletDiscovered || darknessRoom.tabletTaken) {
+      return;
+    }
+
+    darknessRoom.tabletTaken = true;
+    this.state.playerName = "???";
+    this.logNarrativeVariant("tablet_pickup");
   }
 
   private startLoop(): void {
@@ -473,8 +676,9 @@ class Game {
       }
     }
 
-    if (!this.state.lookUnlocked && this.state.heat >= LOOK_UNLOCK_HEAT && this.state.health > LOOK_UNLOCK_HEALTH) {
-      this.state.lookUnlocked = true;
+    const darkRoom = this.state.rooms.dark_room;
+    if (!darkRoom.lookUnlocked && this.state.heat >= LOOK_UNLOCK_HEAT && this.state.health > LOOK_UNLOCK_HEALTH) {
+      darkRoom.lookUnlocked = true;
       this.transitionTo("LOOK_UNLOCKED");
       this.logNarrativeVariant("look_unlocked");
     }
@@ -495,9 +699,10 @@ class Game {
 
   private render(): void {
     this.ui.setEchoId(this.state.echoId);
-    this.ui.setRoomTitle(this.state.currentLocationLabel);
+    this.ui.setPlayerName(this.state.playerName);
+    this.ui.setRoomTitle(this.getCurrentRoom().displayName);
     this.ui.setActions(this.getActionButtons());
-    this.ui.setVitals(this.state.bandTaken, this.formatVitals());
+    this.ui.setVitals(this.state.rooms.dark_room.bandTaken, this.getVitalsState());
     this.ui.setMap(false, "");
     this.ui.setNavigation(this.getNavigationState());
     this.ui.setDeathVisible(this.state.stage === "DEATH_PENDING");
@@ -505,50 +710,99 @@ class Game {
   }
 
   private getActionButtons(): ActionButtonState[] {
-    const stokeRemaining = this.getStokeCooldownRemainingMs();
-    const buttons: ActionButtonState[] = [
-      {
-        command: "stoke",
-        label: stokeRemaining > 0 ? `STOKE EMBERS ${(stokeRemaining / 1000).toFixed(1)}s` : "STOKE EMBERS",
-        disabled: stokeRemaining > 0,
-        cooldownFill: stokeRemaining / STOKE_COOLDOWN_MS
-      }
-    ];
+    const buttons: ActionButtonState[] = [];
+    const currentRoom = this.getCurrentRoom();
 
-    if (this.state.lookUnlocked && this.state.heat !== 0) {
-      buttons.push({ command: "look around", label: "LOOK AROUND" });
+    if (currentRoom.id === ROOM_DARK_ROOM) {
+      const stokeRemaining = this.getStokeCooldownRemainingMs();
+      const cooldownActive = stokeRemaining > 0;
+      buttons.push({
+        command: "stoke",
+        label: cooldownActive ? `STOKE EMBERS ${(stokeRemaining / 1000).toFixed(1)}s` : "STOKE EMBERS",
+        disabled: cooldownActive,
+        cooldownEndsAtMs: cooldownActive ? this.stokeCooldownUntilMs : undefined,
+        cooldownDurationMs: STOKE_COOLDOWN_MS
+      });
+
+      if (currentRoom.lookUnlocked && this.state.heat !== 0) {
+        buttons.push({ command: "look around", label: "LOOK AROUND" });
+      }
+
+      if (currentRoom.revealStep >= 2 && !currentRoom.bandTaken) {
+        buttons.push({ command: "take band", label: "TAKE THE BAND" });
+      }
     }
 
-    if (this.state.revealStep >= 2 && !this.state.bandTaken) {
-      buttons.push({ command: "take band", label: "TAKE THE BAND" });
+    if (currentRoom.id === ROOM_DARKNESS) {
+      if (currentRoom.leverPulled) {
+        buttons.push({ command: "look around", label: "LOOK AROUND" });
+      } else {
+        buttons.push({ command: "feel around", label: "FEEL AROUND" });
+        if (currentRoom.pullLeverUnlocked && !currentRoom.leverPulled) {
+          buttons.push({ command: "pull lever", label: "PULL LEVER" });
+        }
+      }
+
+      if (currentRoom.tabletDiscovered && !currentRoom.tabletTaken) {
+        buttons.push({ command: "pick up tablet", label: "PICK UP TABLET" });
+      }
     }
 
     return buttons;
   }
 
   private getNavigationState(): NavigationState {
+    if (!this.state.navUnlocked) {
+      return { visible: false, entries: [] };
+    }
+
+    const entries: NavigationState["entries"] = [
+      {
+        id: ROOM_DARK_ROOM,
+        label: this.state.rooms.dark_room.displayName,
+        isCurrent: this.state.currentRoomId === ROOM_DARK_ROOM,
+        canEnter: this.state.currentRoomId !== ROOM_DARK_ROOM
+      },
+      {
+        id: ROOM_DARKNESS,
+        label: this.state.rooms.darkness.entered ? this.state.rooms.darkness.displayName : DARKNESS_DOORWAY_LABEL,
+        isCurrent: this.state.currentRoomId === ROOM_DARKNESS,
+        canEnter: this.state.currentRoomId !== ROOM_DARKNESS
+      }
+    ];
+
+    if (this.state.rooms.darkness.partialDoorDiscovered) {
+      entries.push({
+        id: NAV_PARTIAL_DOOR,
+        label: PARTIAL_DOOR_LABEL,
+        isCurrent: false,
+        canEnter: true
+      });
+    }
+
     return {
       visible: this.state.navUnlocked,
-      currentLabel: "A DARK ROOM",
-      targetLabel: "DARKNESS THROUGH THE DOORWAY",
-      canEnter: this.state.navUnlocked && this.state.stage !== "DEMO_END"
+      entries
     };
   }
 
-  private formatVitals(): string {
-    return [
-      `Health: ${this.state.health}/${this.state.maxHealth}`,
-      `Heat: ${this.state.heat}/${this.state.heatCap}`,
-      `Time: ${this.formatTime(this.state.timeMinutes)}`
-    ].join("\n");
+  private getVitalsState(): { health: number; healthMax: number; heat: number; heatMax: number; time: string } {
+    return {
+      health: this.state.health,
+      healthMax: this.state.maxHealth,
+      heat: this.state.heat,
+      heatMax: this.state.heatCap,
+      time: this.formatTime(this.state.timeMinutes)
+    };
   }
 
   private formatMap(): string {
-    if (this.state.revealStep === 0) {
+    const darkRoom = this.state.rooms.dark_room;
+    if (darkRoom.revealStep === 0) {
       return "";
     }
 
-    if (this.state.revealStep < 3) {
+    if (darkRoom.revealStep < 3) {
       return [
         "+----------------------+",
         "|        (you)         |",
@@ -571,6 +825,32 @@ class Game {
     const isPm = hours24 >= 12;
     const displayHour = hours24 % 12 === 0 ? 12 : hours24 % 12;
     return `${displayHour}:${minutes.toString().padStart(2, "0")} ${isPm ? "PM" : "AM"}`;
+  }
+
+  private getCurrentRoom() {
+    return this.state.currentRoomId === ROOM_DARK_ROOM ? this.state.rooms.dark_room : this.state.rooms.darkness;
+  }
+
+  private getReturnLogKeyForDarkness(): string {
+    const label = this.state.rooms.darkness.displayName;
+    if (label === "A DIMLY LIT ROOM") {
+      return "return_dimly_lit";
+    }
+    if (label === "TERMINAL ROOM") {
+      return "return_terminal_room";
+    }
+    return "return_darkness";
+  }
+
+  private getReturnLogKeyForDarkRoom(): string {
+    const label = this.state.rooms.dark_room.displayName;
+    if (label === "A DARK SPACE") {
+      return "return_dark_space";
+    }
+    if (label === DARK_ROOM_LABEL) {
+      return "return_dark_room";
+    }
+    return "return_darkness_room";
   }
 
   private getStokeCooldownRemainingMs(): number {

@@ -91,6 +91,10 @@ body {
   line-height: 1.45;
 }
 
+#vitals {
+  white-space: normal;
+}
+
 .panel__body--actions {
   min-height: 160px;
   display: flex;
@@ -122,6 +126,68 @@ body {
 .panel__body--nav {
   display: grid;
   gap: 10px;
+}
+
+.vitals-band {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.vitals-band__time {
+  font-size: 1.6rem;
+  letter-spacing: 0.2em;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  text-shadow:
+    0 0 8px rgba(122, 248, 180, 0.5),
+    0 0 18px rgba(122, 248, 180, 0.25);
+  text-transform: uppercase;
+}
+
+.vitals-band__meters {
+  display: grid;
+  gap: 10px;
+}
+
+.vitals-meter {
+  display: grid;
+  gap: 6px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.vitals-meter__label {
+  color: var(--text-dim);
+}
+
+.vitals-meter__bar {
+  position: relative;
+  height: 8px;
+  border: 1px solid var(--border);
+  background: rgba(6, 10, 8, 0.7);
+  overflow: hidden;
+}
+
+.vitals-meter__bar span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(111, 255, 184, 0.4), rgba(136, 255, 193, 0.9));
+  box-shadow: 0 0 10px rgba(122, 248, 180, 0.45);
+}
+
+.vitals-meter__bar--heat span {
+  background: linear-gradient(90deg, rgba(255, 170, 110, 0.35), rgba(255, 211, 122, 0.85));
+  box-shadow: 0 0 10px rgba(255, 190, 120, 0.45);
+}
+
+.vitals-meter__value {
+  color: var(--text);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
 }
 
 #log-panel {

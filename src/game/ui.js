@@ -10,6 +10,9 @@ export class UI {
         this.onRestart = onRestart;
         this.logQueue = [];
         this.logTyping = false;
+        this.actionButtons = new Map();
+        this.cooldownItems = new Map();
+        this.cooldownRaf = null;
         const roomTitleEl = document.getElementById("room-title");
         const actionsEl = document.getElementById("actions");
         const logEl = document.getElementById("log");
@@ -25,6 +28,7 @@ export class UI {
         const bootLinesEl = document.getElementById("boot-lines");
         const bootProgressEl = document.getElementById("boot-progress");
         const echoIdEl = document.getElementById("echo-id");
+        const playerNameEl = document.getElementById("player-name");
         const demoModalEl = document.getElementById("demo-modal");
         const deathModalEl = document.getElementById("death-modal");
         const deathMessageEl = document.getElementById("death-message");
@@ -45,6 +49,7 @@ export class UI {
             !bootLinesEl ||
             !bootProgressEl ||
             !echoIdEl ||
+            !playerNameEl ||
             !demoModalEl ||
             !deathModalEl ||
             !deathMessageEl ||
@@ -67,6 +72,7 @@ export class UI {
         this.bootLinesEl = bootLinesEl;
         this.bootProgressEl = bootProgressEl;
         this.echoIdEl = echoIdEl;
+        this.playerNameEl = playerNameEl;
         this.demoModalEl = demoModalEl;
         this.deathModalEl = deathModalEl;
         this.deathMessageEl = deathMessageEl;
@@ -95,35 +101,94 @@ export class UI {
     setEchoId(echoId) {
         this.echoIdEl.textContent = `Echo-${echoId.toString().padStart(2, "0")}`;
     }
+    setPlayerName(name) {
+        this.playerNameEl.textContent = name;
+    }
     setRoomTitle(title) {
         this.roomTitleEl.textContent = title;
     }
     setActions(actions) {
-        this.actionsEl.innerHTML = "";
         this.actionsEl.classList.toggle("panel__body--actions-centered", actions.length === 1 && actions[0]?.command === "stoke");
+        const seen = new Set();
         for (const action of actions) {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "action-button";
-            if (action.command === "stoke") {
-                button.classList.add("action-button--stoke");
+            seen.add(action.command);
+            let button = this.actionButtons.get(action.command);
+            if (!button) {
+                button = document.createElement("button");
+                button.type = "button";
+                button.className = "action-button";
+                if (action.command === "stoke") {
+                    button.classList.add("action-button--stoke");
+                }
+                const label = document.createElement("span");
+                button.appendChild(label);
+                // Use pointerdown so actions register immediately even while UI is re-rendering.
+                button.addEventListener("pointerdown", (event) => {
+                    event.preventDefault();
+                    this.onAction(action.command);
+                });
+                this.actionButtons.set(action.command, button);
+            }
+            const label = button.querySelector("span");
+            if (label) {
+                label.textContent = action.label ?? action.command;
             }
             button.disabled = Boolean(action.disabled);
-            button.style.setProperty("--cooldown-fill", `${Math.max(0, Math.min(1, action.cooldownFill ?? 0))}`);
-            const label = document.createElement("span");
-            label.textContent = action.label ?? action.command;
-            button.appendChild(label);
-            // Use pointerdown so actions register immediately even while UI is re-rendering.
-            button.addEventListener("pointerdown", (event) => {
-                event.preventDefault();
-                this.onAction(action.command);
-            });
+            if (action.cooldownEndsAtMs && action.cooldownDurationMs) {
+                const now = Date.now();
+                const remaining = action.cooldownEndsAtMs - now;
+                const ratio = remaining > 0 ? remaining / action.cooldownDurationMs : 0;
+                button.style.setProperty("--cooldown-fill", `${Math.max(0, Math.min(1, ratio))}`);
+                this.cooldownItems.set(action.command, {
+                    button,
+                    endsAt: action.cooldownEndsAtMs,
+                    duration: action.cooldownDurationMs
+                });
+                this.startCooldownLoop();
+            }
+            else {
+                this.cooldownItems.delete(action.command);
+                button.style.setProperty("--cooldown-fill", "0");
+            }
             this.actionsEl.appendChild(button);
         }
+        for (const [command, button] of Array.from(this.actionButtons.entries())) {
+            if (!seen.has(command)) {
+                button.remove();
+                this.actionButtons.delete(command);
+                this.cooldownItems.delete(command);
+            }
+        }
     }
-    setVitals(visible, text) {
+    setVitals(visible, vitals) {
         this.vitalsPanelEl.classList.toggle("is-hidden", !visible);
-        this.vitalsEl.textContent = text;
+        if (!visible || !vitals) {
+            this.vitalsEl.innerHTML = "";
+            return;
+        }
+        const healthRatio = Math.max(0, Math.min(1, vitals.health / vitals.healthMax));
+        const heatRatio = Math.max(0, Math.min(1, vitals.heat / vitals.heatMax));
+        this.vitalsEl.innerHTML = `
+      <div class="vitals-band">
+        <div class="vitals-band__time">${vitals.time}</div>
+        <div class="vitals-band__meters">
+          <div class="vitals-meter">
+            <div class="vitals-meter__label">Health</div>
+            <div class="vitals-meter__bar">
+              <span style="width: ${(healthRatio * 100).toFixed(1)}%"></span>
+            </div>
+            <div class="vitals-meter__value">${vitals.health}/${vitals.healthMax}</div>
+          </div>
+          <div class="vitals-meter">
+            <div class="vitals-meter__label">Heat</div>
+            <div class="vitals-meter__bar vitals-meter__bar--heat">
+              <span style="width: ${(heatRatio * 100).toFixed(1)}%"></span>
+            </div>
+            <div class="vitals-meter__value">${vitals.heat}/${vitals.heatMax}</div>
+          </div>
+        </div>
+      </div>
+    `;
     }
     setMap(visible, text) {
         this.mapPanelEl.classList.toggle("is-hidden", !visible);
@@ -136,36 +201,36 @@ export class UI {
             return;
         }
         this.navEl.innerHTML = "";
-        const currentRow = document.createElement("div");
-        currentRow.className = "nav-row";
-        const currentLabel = document.createElement("div");
-        currentLabel.className = "nav-row__label";
-        currentLabel.textContent = state.currentLabel;
-        const currentBadge = document.createElement("div");
-        currentBadge.className = "nav-row__current";
-        currentBadge.textContent = "Current Location";
-        currentRow.appendChild(currentLabel);
-        currentRow.appendChild(currentBadge);
-        this.navEl.appendChild(currentRow);
-        const targetRow = document.createElement("div");
-        targetRow.className = "nav-row";
-        const targetLabel = document.createElement("div");
-        targetLabel.className = "nav-row__label";
-        targetLabel.textContent = state.targetLabel;
-        const enterButton = document.createElement("button");
-        enterButton.type = "button";
-        enterButton.className = "nav-button";
-        enterButton.disabled = !state.canEnter;
-        const enterText = document.createElement("span");
-        enterText.textContent = "ENTER";
-        enterButton.appendChild(enterText);
-        enterButton.addEventListener("pointerdown", (event) => {
-            event.preventDefault();
-            this.onEnter();
-        });
-        targetRow.appendChild(targetLabel);
-        targetRow.appendChild(enterButton);
-        this.navEl.appendChild(targetRow);
+        for (const entry of state.entries) {
+            const row = document.createElement("div");
+            row.className = "nav-row";
+            const label = document.createElement("div");
+            label.className = "nav-row__label";
+            label.textContent = entry.label;
+            if (entry.isCurrent) {
+                const currentBadge = document.createElement("div");
+                currentBadge.className = "nav-row__current";
+                currentBadge.textContent = "Current Location";
+                row.appendChild(label);
+                row.appendChild(currentBadge);
+            }
+            else {
+                const enterButton = document.createElement("button");
+                enterButton.type = "button";
+                enterButton.className = "nav-button";
+                enterButton.disabled = !entry.canEnter;
+                const enterText = document.createElement("span");
+                enterText.textContent = "ENTER";
+                enterButton.appendChild(enterText);
+                enterButton.addEventListener("pointerdown", (event) => {
+                    event.preventDefault();
+                    this.onEnter(entry.id);
+                });
+                row.appendChild(label);
+                row.appendChild(enterButton);
+            }
+            this.navEl.appendChild(row);
+        }
     }
     logSystem(message) {
         this.enqueueLog(message, "system");
@@ -228,5 +293,33 @@ export class UI {
     }
     sleep(ms) {
         return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+    startCooldownLoop() {
+        if (this.cooldownRaf !== null) {
+            return;
+        }
+        const step = () => {
+            const now = Date.now();
+            let hasActive = false;
+            for (const [command, item] of this.cooldownItems.entries()) {
+                const remaining = item.endsAt - now;
+                const ratio = remaining > 0 ? remaining / item.duration : 0;
+                item.button.style.setProperty("--cooldown-fill", `${Math.max(0, Math.min(1, ratio))}`);
+                if (remaining <= 0) {
+                    item.button.disabled = false;
+                    this.cooldownItems.delete(command);
+                }
+                else {
+                    hasActive = true;
+                }
+            }
+            if (hasActive) {
+                this.cooldownRaf = window.requestAnimationFrame(step);
+            }
+            else {
+                this.cooldownRaf = null;
+            }
+        };
+        this.cooldownRaf = window.requestAnimationFrame(step);
     }
 }

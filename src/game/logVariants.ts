@@ -95,6 +95,98 @@ const CATALOG: VariantCatalog = {
     { text: "You scan the room once more, but nothing new stands out..." },
     { text: "Another careful look reveals no new details..." }
   ],
+  enter_darkness: [
+    { text: "You step into the darkness beyond the doorway." },
+    { text: "Darkness swallows the doorway behind you." }
+  ],
+  return_dark_room: [
+    { text: "You return to the room with the embers." },
+    { text: "You step back toward the glow of the embers." }
+  ],
+  return_dark_space: [
+    { text: "You step back into the dark space." },
+    { text: "You return to the dim outline of the space." }
+  ],
+  return_darkness_room: [
+    { text: "You move back into the darkness." },
+    { text: "You step into the dark once more." }
+  ],
+  return_darkness: [
+    { text: "You move back into the darkness." },
+    { text: "You slip into the dark again." }
+  ],
+  return_dimly_lit: [
+    { text: "You return to the dimly lit room." },
+    { text: "You step back into the pulsing red light." }
+  ],
+  return_terminal_room: [
+    { text: "You return to the terminal room." },
+    { text: "You step back toward the dead terminals." }
+  ],
+  feel_step_1: [
+    { text: "You feel around in the darkness. There's a wall to your left. It's cold." },
+    { text: "You reach into the dark and find a wall to your left. It's cold." }
+  ],
+  feel_step_2: [
+    { text: "On that wall, something feels familiar... like a lever..." },
+    { text: "Your fingers find something on the wall... a lever shape..." }
+  ],
+  feel_step_3: [
+    { text: "You brush against something chair-shaped on the floor." },
+    { text: "Your hand bumps a chair-like frame on the ground." }
+  ],
+  feel_step_4: [
+    { text: "Tracing the wall, you find a partially closed doorway. Cold air leaks through the seam." },
+    { text: "Your hand follows the wall to a partially closed door. Darkness leaks through its seam." }
+  ],
+  feel_step_5: [
+    { text: "By your feet, you find a broken tablet, its screen faintly warm." },
+    { text: "Your fingers catch the edge of a shattered tablet on the floor." }
+  ],
+  feel_repeat: [
+    { text: "You feel around again, but nothing new stands out..." },
+    { text: "You sweep the darkness once more, finding nothing new..." }
+  ],
+  pull_lever: [
+    { text: "Dim red lighting begins pulsing from the ceiling." },
+    { text: "A faint red pulse rolls across the ceiling as the lever engages." }
+  ],
+  darkness_look_1: [
+    {
+      text: "The pulsing red light reveals a room in disarray -- chairs knocked over, broken devices strewn across the floor, wires sparking faintly in the dark."
+    },
+    {
+      text: "Red pulses expose a wrecked room -- chairs toppled, devices shattered, wires sparking faintly in the dark."
+    }
+  ],
+  darkness_look_2: [
+    { text: "In the center of the far wall, you notice a partially closed door -- its seam leaking darkness." },
+    { text: "A partially closed door sits in the far wall, its seam leaking darkness." }
+  ],
+  darkness_look_3: [
+    { text: "Along the right wall, dark terminals sit lifeless in a row -- dead screens, silent panels, faint grime." },
+    { text: "To the right, a row of dead terminals lines the wall, screens black and grimy." }
+  ],
+  darkness_look_4: [
+    {
+      text: "Near your feet, ruined documents are scattered across the floor. Beside them, a broken tablet sits frozen on a diagnostic screen."
+    },
+    {
+      text: "Ruined papers cover the floor. A broken tablet lies beside them, frozen on a diagnostic screen."
+    }
+  ],
+  darkness_look_repeat: [
+    { text: "You scan the room again, but nothing new stands out..." },
+    { text: "Another look yields no new details..." }
+  ],
+  tablet_pickup: [
+    {
+      text: "The tablet's screen shows a fractured image -- too broken to read a name, too warped to make sense of the details. You recognize the face as yours... but it feels wrong. Foreign. Like something is missing."
+    },
+    {
+      text: "A fractured image flickers on the tablet. The name is unreadable, the details warped. The face is yours... but wrong. Foreign. Like something is missing."
+    }
+  ],
   band_taken: [
     { text: "You take the band, and place it around your wrist. Its screen flickers on..." },
     { text: "You slip the band onto your wrist. The display sparks to life..." },

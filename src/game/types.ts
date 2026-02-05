@@ -1,4 +1,5 @@
 export type ResourceId = "heat" | "air" | "water" | "food" | "power";
+export type RoomId = "dark_room" | "darkness";
 
 export interface RoomDef {
   id: string;
@@ -44,21 +45,45 @@ export type IntroStage =
   | "DEATH_PENDING"
   | "DEMO_END";
 
+export interface DarkRoomState {
+  id: "dark_room";
+  displayName: string;
+  entered: boolean;
+  lookUnlocked: boolean;
+  revealStep: number;
+  bandTaken: boolean;
+}
+
+export interface DarknessRoomState {
+  id: "darkness";
+  displayName: string;
+  entered: boolean;
+  feelStep: number;
+  lookStep: number;
+  leverPulled: boolean;
+  pullLeverUnlocked: boolean;
+  partialDoorDiscovered: boolean;
+  tabletDiscovered: boolean;
+  tabletTaken: boolean;
+}
+
 export interface GameState {
   runSeed: number;
   echoId: number;
   stage: IntroStage;
   started: boolean;
-  currentLocationLabel: string;
+  currentRoomId: RoomId;
+  playerName: string;
+  rooms: {
+    dark_room: DarkRoomState;
+    darkness: DarknessRoomState;
+  };
   heat: number;
   heatCap: number;
   health: number;
   maxHealth: number;
   timeMinutes: number;
   stokeCount: number;
-  lookUnlocked: boolean;
-  revealStep: number;
-  bandTaken: boolean;
   navUnlocked: boolean;
   demoComplete: boolean;
   thawLineShown: boolean;
