@@ -32,14 +32,12 @@ Key constants (from `src/game/game.ts`):
 
 ## Unlock conditions
 
-- First stoke initializes run and sets baseline heat.
+- First stoke initializes the run and sets baseline heat.
 - `LOOK AROUND` unlocks only when both:
-  - heat is greater than `30`, and
+  - heat is at least `18`, and
   - health is greater than `12`.
 - `TAKE THE BAND` unlocks after reveal step 2.
-- `ENTER` unlocks after reveal step 3 and opens the second room.
-- `INSPECT TERMINALS` unlocks after the terminal discovery in the second room.
-- The demo ends only after entering the partially closed doorway.
+- `ENTER` unlocks after reveal step 3 and ends the demo.
 
 ## Progressive affordances
 
@@ -48,8 +46,6 @@ Key constants (from `src/game/game.ts`):
 - Later: `TAKE THE BAND` appears.
 - Post-reveal: navigation panel appears with doorway `ENTER` action.
 - After band is taken: VITALS panel appears (`Health`, `Heat`, `Time`).
-- STORAGE panel persists across rooms and lists acquired items.
-- Terminal inspection unlocks the ARTIFICIAL INTELLIGENCE panel (OFFLINE status).
 
 ## Time model (demo)
 
@@ -67,10 +63,11 @@ Two channels:
 
 Variant selection is run-seeded and anti-repetitive, which gives each run slight text variation without changing mechanics.
 
-## Cross-room dependencies
+## Ambient events
 
-- Pulling the lever in the terminal room unlocks a one-time retroactive reveal in the starting room.
-- The next `LOOK AROUND` in the starting room after lever activation renames it to `POD ROOM`.
+Ambient log lines are triggered at random intervals during the loop:
+- the interval is randomized between 32s and 65s,
+- each interval has a 45% chance to emit an ambient line.
 
 ## Death and reset
 
@@ -85,5 +82,3 @@ Available on `window.__aseDebug`:
 - `boostVitals()`
 - `unlockLook()`
 - `jumpReveal3()`
-
-Additional setters (vitals, room jumps, reveal steps, fast-forward) are documented in `documentation/development.md`.

@@ -1,110 +1,33 @@
 # Testing Strategy
 
-This project uses a layered test approach so regression checks are fast, repeatable, and deterministic as content grows.
+## Current status
 
-## Test layers
+There is no automated test suite in the repository yet.
 
-- **Unit tests**: Validate deterministic core logic (state transitions, gating, resource ticks).
-- **Scripted playthroughs**: Multi-step flows that exercise progression gates and branching paths.
-- **Save-state fixtures**: JSON snapshots of `GameState` at key moments to prevent regressions mid-run.
-- **Headless smoke test**: Short deterministic run that asserts no crashes and basic invariants.
+Manual testing is the primary validation loop:
+- run `npm run dev`,
+- play through the intro progression,
+- verify log flow, cooldown behavior, and demo restart.
 
-## Running tests
+## Recommended next steps (when tests are added)
 
-Tests use Node's built-in test runner (`node --test`).
+A layered approach will scale best as systems grow:
 
-```bash
-npm test
-```
+- **Unit tests** for deterministic logic (resource ticks, unlock gates).
+- **Scripted playthroughs** for intro milestones and regression prevention.
+- **Fixture snapshots** for key mid-run states (after band, before doorway, etc.).
+- **Smoke test** for a short deterministic run in CI.
 
-Watch mode:
-
-```bash
-npm run test:watch
-```
-
-Smoke test only:
-
-```bash
-npm run test:smoke
-```
-
-## Where tests live
+## Suggested structure
 
 ```text
 tests/
-├─ engine.unit.test.js
+├─ game.unit.test.js
 ├─ playthrough.test.js
-├─ fixtures.test.js
-├─ smoke.test.js
+├─ fixtures/
 └─ helpers/
-   └─ engineHarness.js
 ```
 
-## Adding unit tests
+## Deterministic RNG guidance
 
-Unit tests should target the deterministic engine in `src/game/engine.ts`:
-
-- Use `createRun()` from `tests/helpers/engineHarness.js` to build a seeded run.
-- Call `action()`, `tick()`, or `enter()` to drive state transitions.
-- Assert on `run.state` and returned log keys.
-
-## Scripted playthroughs
-
-Playthrough tests belong in `tests/playthrough.test.js`:
-
-- Keep scripts short and focused on a specific gate or branch.
-- Prefer deterministic setups (seeded RNG + explicit state preparation).
-- Assert checkpoints (location, unlock flags, navigation entries, player name).
-
-Example harness usage:
-
-```js
-import { createRun, wake, action, tick } from "./helpers/engineHarness.js";
-
-const run = createRun({ seed: 42 });
-wake(run);
-action(run, "stoke");
-tick(run, 2000);
-```
-
-## Save-state fixtures
-
-Fixtures are in `tests/fixtures/*.json` and represent canonical mid-run checkpoints.
-
-Guidelines:
-
-- Update fixtures intentionally; avoid “auto-updating” after small changes.
-- When a fixture changes, confirm the progression gate it represents is still correct.
-- Fixture tests should load the JSON and run a minimal script to validate invariants.
-- Fixtures store `GameState` only; runtime counters are re-initialized in tests.
-
-Recent fixture additions:
-- `after_band_with_storage.json`
-- `terminal_room_terminals_discovered.json`
-- `ai_unlocked.json`
-- `lever_pulled_before_return_to_start.json`
-- `pod_room_revealed.json`
-
-## Headless smoke test
-
-`tests/smoke.test.js` runs a short deterministic loop with seeded RNG and basic actions:
-
-- Ensures no exceptions and no invalid state values.
-- Provides a lightweight guardrail for CI.
-
-## CI integration
-
-Recommended CI command:
-
-```bash
-npm test
-```
-
-This includes unit, playthrough, fixture, and smoke tests in one run. If you want smoke-only in a quick pipeline, run `npm run test:smoke`.
-
-## Deterministic RNG
-
-- Run seeds are created in `src/game/logVariants.ts`.
-- Tests should pass a fixed seed to `createRun()` to ensure deterministic behavior.
-- If a test fails, capture the seed and action sequence to reproduce the run.
+Run-seeded logs already exist in `src/game/logVariants.ts`. When tests are introduced, pass fixed seeds to keep runs repeatable and easy to debug.

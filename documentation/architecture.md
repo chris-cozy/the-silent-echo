@@ -9,23 +9,19 @@
 
 ## Core modules
 
-### `src/game/engine.ts`
-
-Deterministic game core:
-- serializable state construction,
-- action and navigation reducers,
-- tick progression and survival math,
-- derived UI model for actions/navigation/vitals/storage/AI,
-- run-seeded ambient log triggering (via injected RNG).
-
 ### `src/game/game.ts`
 
-Runtime wrapper around the deterministic core:
-- boot sequence and lifecycle wiring,
-- timer scheduling and real-time tick integration,
-- mapping engine log keys to narrative/system text,
-- UI updates and modal control.
-Runtime scheduling uses a fixed tick (`TICK_MS = 250`) and forwards elapsed time to the engine.
+Owns game state and progression logic:
+- intro state machine,
+- survival timers and accumulators,
+- action handling,
+- unlock gates,
+- render payload construction for UI.
+
+Important characteristics:
+- fixed simulation tick (`TICK_MS = 250`),
+- separate accumulators for heat decay, health regen/drain, ambient events, and clock time,
+- deterministic log variation per run via a seeded RNG.
 
 ### `src/game/ui.ts`
 
@@ -66,7 +62,7 @@ Infrastructure modules currently available for future integration:
 
 Main UI structure in `index.html`:
 - header (`Echo-03`, player placeholder),
-- left stack (room/actions, vitals band, storage, AI, map, navigation),
+- left stack (room/actions, vitals, map, navigation),
 - right log panel,
 - overlays (wake, boot, demo end),
 - visual layers (scanlines/noise/glow).
@@ -75,8 +71,6 @@ Current behavior notes:
 - map panel exists but is rendered hidden in the current loop,
 - nav panel appears only when reveal progression reaches doorway unlock,
 - vitals panel appears after wrist band acquisition.
-- storage panel persists and lists acquired items,
-- AI panel appears after terminal inspection.
 
 ## Data layout
 

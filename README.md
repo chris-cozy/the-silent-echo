@@ -25,10 +25,9 @@ Open the Vite URL printed in the terminal (usually `http://localhost:5173`).
 
 ## Available scripts
 
-- `npm run dev` starts local development server.
+- `npm run dev` starts the local development server.
 - `npm run build` runs TypeScript compile and Vite production build.
 - `npm run preview` serves the built app locally.
-- `npm test` runs the automated test suite.
 
 ## Tech stack
 
@@ -46,6 +45,7 @@ Implemented:
 - Progressive unlock flow (`LOOK AROUND`, `TAKE THE BAND`, `ENTER`).
 - Typing-style log feed with system and narrative channels.
 - End-of-demo modal with run restart.
+- Seeded log text variants for subtle narrative variation.
 
 Scaffolded but not wired into the live loop yet:
 - JSON data loading (`src/game/data.ts`).
