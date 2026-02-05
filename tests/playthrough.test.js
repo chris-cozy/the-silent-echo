@@ -59,3 +59,27 @@ test("tablet pickup updates player name", () => {
   assert.equal(run.state.rooms.darkness.tabletTaken, true);
   assert.equal(run.state.playerName, "???");
 });
+
+test("terminal inspection unlocks AI and pod room reveal", () => {
+  const run = createRun({ seed: 21 });
+  bootstrapNavUnlocked(run);
+
+  action(run, "take band");
+  assert.ok(run.state.inventory.items.includes("band"));
+
+  enter(run, ROOM_DARKNESS);
+  action(run, "feel around");
+  action(run, "feel around");
+  action(run, "pull lever");
+  action(run, "look around");
+  action(run, "look around");
+  action(run, "look around");
+
+  action(run, "inspect terminals");
+  action(run, "inspect terminals");
+  assert.equal(run.state.ai.unlocked, true);
+
+  enter(run, ROOM_DARK_ROOM);
+  action(run, "look around");
+  assert.equal(run.state.rooms.dark_room.displayName, "POD ROOM");
+});

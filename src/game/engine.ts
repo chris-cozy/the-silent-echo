@@ -1,12 +1,13 @@
 import { createRunSeed } from "./logVariants.js";
 import { GameState } from "./types.js";
-import type { ActionButtonState, NavigationState } from "./uiTypes.js";
+import type { ActionButtonState, AiPanelState, NavigationState, StorageState } from "./uiTypes.js";
 
 export type ActionCommand =
   | "stoke"
   | "look around"
   | "feel around"
   | "pull lever"
+  | "inspect terminals"
   | "take band"
   | "pick up tablet";
 
@@ -39,6 +40,8 @@ export interface UiState {
   actions: ActionButtonState[];
   navigation: NavigationState;
   vitals: { health: number; healthMax: number; heat: number; heatMax: number; time: string };
+  storage: StorageState;
+  aiPanel: AiPanelState;
 }
 
 export const ROOM_DARK_ROOM = "dark_room" as const;
@@ -63,7 +66,7 @@ export const STOKE_CAP_INCREMENT = 5;
 export const HEALTH_REGEN_SECONDS = 3;
 export const HEALTH_DRAIN_SECONDS = 2;
 export const LOOK_UNLOCK_HEALTH = 12;
-export const LOOK_UNLOCK_HEAT = 18;
+export const LOOK_UNLOCK_HEAT = 30;
 
 export const AMBIENT_MIN_MS = 32000;
 export const AMBIENT_MAX_MS = 65000;
@@ -84,7 +87,8 @@ export function createInitialState(echoId: number, runSeed: number = createRunSe
         entered: true,
         lookUnlocked: false,
         revealStep: 0,
-        bandTaken: false
+        bandTaken: false,
+        podRoomRevealed: false
       },
       darkness: {
         id: "darkness",
@@ -96,8 +100,19 @@ export function createInitialState(echoId: number, runSeed: number = createRunSe
         pullLeverUnlocked: false,
         partialDoorDiscovered: false,
         tabletDiscovered: false,
-        tabletTaken: false
+        tabletTaken: false,
+        inspectTerminalsStep: 0
       }
+    },
+    inventory: {
+      items: [],
+      resources: {}
+    },
+    ai: {
+      unlocked: false,
+      status: "OFFLINE",
+      reason: "EMERGENCY POWER RESERVES INSUFFICIENT",
+      offlineAnnounced: false
     },
     heat: 0,
     heatCap: 20,
@@ -174,6 +189,9 @@ export function applyAction(state: GameState, runtime: EngineRuntime, action: Ac
       break;
     case "pull lever":
       pullLever(state, logs);
+      break;
+    case "inspect terminals":
+      inspectTerminals(state, logs);
       break;
     case "take band":
       takeBand(state, logs);
@@ -261,7 +279,9 @@ export function deriveUiState(state: GameState, runtime: EngineRuntime): UiState
     roomTitle: getCurrentRoom(state).displayName,
     actions: getActionButtons(state, runtime),
     navigation: getNavigationState(state),
-    vitals: getVitalsState(state)
+    vitals: getVitalsState(state),
+    storage: getStorageState(state),
+    aiPanel: getAiPanelState(state)
   };
 }
 
@@ -341,6 +361,7 @@ function takeBand(state: GameState, logs: EngineLogEvent[]): void {
 
   darkRoom.bandTaken = true;
   state.stage = "BAND_TAKEN";
+  addInventoryItem(state, "band");
   pushNarrative(logs, "band_taken");
 }
 
@@ -372,6 +393,13 @@ function lookAroundDarkRoom(state: GameState, logs: EngineLogEvent[]): void {
     state.navUnlocked = true;
     state.stage = "NAV_UNLOCKED";
     pushNarrative(logs, "look_step_3");
+    return;
+  }
+
+  if (darkRoom.revealStep >= 3 && state.rooms.darkness.leverPulled && !darkRoom.podRoomRevealed) {
+    darkRoom.podRoomRevealed = true;
+    darkRoom.displayName = "POD ROOM";
+    pushNarrative(logs, "pod_room_reveal");
     return;
   }
 
@@ -439,6 +467,36 @@ function pullLever(state: GameState, logs: EngineLogEvent[]): void {
   pushNarrative(logs, "pull_lever");
 }
 
+function inspectTerminals(state: GameState, logs: EngineLogEvent[]): void {
+  if (state.currentRoomId !== ROOM_DARKNESS) {
+    return;
+  }
+
+  const darknessRoom = state.rooms.darkness;
+  if (darknessRoom.lookStep < 3) {
+    return;
+  }
+
+  if (darknessRoom.inspectTerminalsStep === 0) {
+    darknessRoom.inspectTerminalsStep = 1;
+    pushNarrative(logs, "inspect_terminals_1");
+    return;
+  }
+
+  if (darknessRoom.inspectTerminalsStep === 1) {
+    darknessRoom.inspectTerminalsStep = 2;
+    pushNarrative(logs, "inspect_terminals_2");
+    state.ai.unlocked = true;
+    if (!state.ai.offlineAnnounced) {
+      state.ai.offlineAnnounced = true;
+      pushSystem(logs, "ai_offline");
+    }
+    return;
+  }
+
+  pushNarrative(logs, "inspect_terminals_repeat");
+}
+
 function lookAroundDarkness(state: GameState, logs: EngineLogEvent[]): void {
   if (state.currentRoomId !== ROOM_DARKNESS) {
     return;
@@ -497,6 +555,7 @@ function pickUpTablet(state: GameState, logs: EngineLogEvent[]): void {
 
   darknessRoom.tabletTaken = true;
   state.playerName = "???";
+  addInventoryItem(state, "tablet");
   pushNarrative(logs, "tablet_pickup");
 }
 
@@ -607,6 +666,10 @@ function getActionButtons(state: GameState, runtime: EngineRuntime): ActionButto
       }
     }
 
+    if (currentRoom.lookStep >= 3) {
+      buttons.push({ command: "inspect terminals", label: "INSPECT TERMINALS" });
+    }
+
     if (currentRoom.tabletDiscovered && !currentRoom.tabletTaken) {
       buttons.push({ command: "pick up tablet", label: "PICK UP TABLET" });
     }
@@ -660,6 +723,23 @@ function getVitalsState(state: GameState): { health: number; healthMax: number; 
   };
 }
 
+function getStorageState(state: GameState): StorageState {
+  const items = state.inventory.items.map((item) => formatItemLabel(item));
+  const resources = Object.entries(state.inventory.resources)
+    .filter(([, count]) => count > 0)
+    .map(([id, count]) => ({ id, count }));
+  const visible = items.length > 0 || resources.length > 0;
+  return { visible, items, resources, showResources: resources.length > 0 };
+}
+
+function getAiPanelState(state: GameState): AiPanelState {
+  return {
+    visible: state.ai.unlocked,
+    status: state.ai.status,
+    reason: state.ai.reason
+  };
+}
+
 function formatTime(totalMinutes: number): string {
   const hours24 = Math.floor(totalMinutes / 60) % 24;
   const minutes = totalMinutes % 60;
@@ -691,7 +771,27 @@ function getReturnLogKeyForDarkRoom(state: GameState): string {
   if (label === DARK_ROOM_LABEL) {
     return "return_dark_room";
   }
+  if (label === "POD ROOM") {
+    return "return_pod_room";
+  }
   return "return_darkness_room";
+}
+
+function addInventoryItem(state: GameState, item: "band" | "tablet"): void {
+  if (!state.inventory.items.includes(item)) {
+    state.inventory.items.push(item);
+  }
+}
+
+function formatItemLabel(item: string): string {
+  switch (item) {
+    case "band":
+      return "Vitals Band";
+    case "tablet":
+      return "Tablet";
+    default:
+      return item;
+  }
 }
 
 function randomBetween(rng: () => number, min: number, max: number): number {

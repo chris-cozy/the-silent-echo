@@ -34,10 +34,12 @@ Key constants (from `src/game/game.ts`):
 
 - First stoke initializes run and sets baseline heat.
 - `LOOK AROUND` unlocks only when both:
-  - heat is at least `18`, and
+  - heat is greater than `30`, and
   - health is greater than `12`.
 - `TAKE THE BAND` unlocks after reveal step 2.
-- `ENTER` unlocks after reveal step 3 and ends the demo.
+- `ENTER` unlocks after reveal step 3 and opens the second room.
+- `INSPECT TERMINALS` unlocks after the terminal discovery in the second room.
+- The demo ends only after entering the partially closed doorway.
 
 ## Progressive affordances
 
@@ -46,6 +48,8 @@ Key constants (from `src/game/game.ts`):
 - Later: `TAKE THE BAND` appears.
 - Post-reveal: navigation panel appears with doorway `ENTER` action.
 - After band is taken: VITALS panel appears (`Health`, `Heat`, `Time`).
+- STORAGE panel persists across rooms and lists acquired items.
+- Terminal inspection unlocks the ARTIFICIAL INTELLIGENCE panel (OFFLINE status).
 
 ## Time model (demo)
 
@@ -62,6 +66,11 @@ Two channels:
 - narrative messages.
 
 Variant selection is run-seeded and anti-repetitive, which gives each run slight text variation without changing mechanics.
+
+## Cross-room dependencies
+
+- Pulling the lever in the terminal room unlocks a one-time retroactive reveal in the starting room.
+- The next `LOOK AROUND` in the starting room after lever activation renames it to `POD ROOM`.
 
 ## Death and reset
 

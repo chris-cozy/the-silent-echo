@@ -38,6 +38,11 @@ test("intro_after_band advances to NAV_UNLOCKED on look step 3", () => {
   assert.equal(state.stage, "NAV_UNLOCKED");
 });
 
+test("after_band_with_storage tracks band in inventory", () => {
+  const state = loadFixture("after_band_with_storage");
+  assert.ok(state.inventory.items.includes("band"));
+});
+
 test("darkness_before_lever unlocks lever on feel step 2", () => {
   const state = loadFixture("darkness_before_lever");
   const rng = createSeededRng(state.runSeed);
@@ -47,6 +52,21 @@ test("darkness_before_lever unlocks lever on feel step 2", () => {
   assert.equal(state.rooms.darkness.pullLeverUnlocked, true);
 });
 
+test("terminal_room_terminals_discovered allows inspecting terminals", () => {
+  const state = loadFixture("terminal_room_terminals_discovered");
+  const rng = createSeededRng(state.runSeed);
+  const runtime = createInitialRuntime(rng);
+
+  const outcome = applyAction(state, runtime, "inspect terminals");
+  assert.ok(outcome.logs.some((log) => log.key === "inspect_terminals_1"));
+});
+
+test("ai_unlocked fixture keeps AI panel unlocked", () => {
+  const state = loadFixture("ai_unlocked");
+  assert.equal(state.ai.unlocked, true);
+  assert.equal(state.ai.offlineAnnounced, true);
+});
+
 test("darkness_after_lever discovers partial door on look step 2", () => {
   const state = loadFixture("darkness_after_lever_before_tablet");
   const rng = createSeededRng(state.runSeed);
@@ -54,6 +74,25 @@ test("darkness_after_lever discovers partial door on look step 2", () => {
 
   applyAction(state, runtime, "look around");
   assert.equal(state.rooms.darkness.partialDoorDiscovered, true);
+});
+
+test("lever_pulled_before_return_to_start reveals pod room", () => {
+  const state = loadFixture("lever_pulled_before_return_to_start");
+  const rng = createSeededRng(state.runSeed);
+  const runtime = createInitialRuntime(rng);
+
+  const outcome = applyAction(state, runtime, "look around");
+  assert.ok(outcome.logs.some((log) => log.key === "pod_room_reveal"));
+  assert.equal(state.rooms.dark_room.displayName, "POD ROOM");
+});
+
+test("pod_room_revealed fixture repeats look around", () => {
+  const state = loadFixture("pod_room_revealed");
+  const rng = createSeededRng(state.runSeed);
+  const runtime = createInitialRuntime(rng);
+
+  const outcome = applyAction(state, runtime, "look around");
+  assert.ok(outcome.logs.some((log) => log.key === "look_repeat"));
 });
 
 test("partial_door_discovered fixture can enter demo end", () => {

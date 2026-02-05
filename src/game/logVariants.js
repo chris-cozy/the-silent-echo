@@ -86,6 +86,14 @@ const CATALOG = {
         { text: "You scan the room once more, but nothing new stands out..." },
         { text: "Another careful look reveals no new details..." }
     ],
+    pod_room_reveal: [
+        {
+            text: "In the pulsing light, you notice other devices like the one you crawled out of... lined along the walls. Most are dormant. Some are cracked open. Some look destroyed."
+        },
+        {
+            text: "The pulsing light reveals other pods like yours along the walls. Most are dormant. Some are cracked open. Some look destroyed."
+        }
+    ],
     enter_darkness: [
         { text: "You step into the darkness beyond the doorway." },
         { text: "Darkness swallows the doorway behind you." }
@@ -93,6 +101,10 @@ const CATALOG = {
     return_dark_room: [
         { text: "You return to the room with the embers." },
         { text: "You step back toward the glow of the embers." }
+    ],
+    return_pod_room: [
+        { text: "You return to the pod room." },
+        { text: "You step back among the dormant pods." }
     ],
     return_dark_space: [
         { text: "You step back into the dark space." },
@@ -158,6 +170,26 @@ const CATALOG = {
         { text: "Along the right wall, dark terminals sit lifeless in a row -- dead screens, silent panels, faint grime." },
         { text: "To the right, a row of dead terminals lines the wall, screens black and grimy." }
     ],
+    inspect_terminals_1: [
+        {
+            text: "You step closer and examine the terminals. They feel like part of a control system -- old, industrial, purpose-built."
+        },
+        {
+            text: "You inspect the terminals up close. They feel like part of an old control system -- industrial, purpose-built."
+        }
+    ],
+    inspect_terminals_2: [
+        {
+            text: "One terminal isn't fully dead. Faint text pulses on its screen... in sync with the red ceiling light."
+        },
+        {
+            text: "A single terminal flickers to life. Faint text pulses in time with the red ceiling light."
+        }
+    ],
+    inspect_terminals_repeat: [
+        { text: "You scan the terminals again, but nothing new answers you." },
+        { text: "The terminals remain quiet and unchanged." }
+    ],
     darkness_look_4: [
         {
             text: "Near your feet, ruined documents are scattered across the floor. Beside them, a broken tablet sits frozen on a diagnostic screen."
@@ -174,6 +206,7 @@ const CATALOG = {
         { text: "You scan the room again, but nothing new stands out..." },
         { text: "Another look yields no new details..." }
     ],
+    ai_offline: [{ text: "Artificial Intelligence Offline." }],
     tablet_pickup: [
         {
             text: "The tablet's screen shows a fractured image -- too broken to read a name, too warped to make sense of the details. You recognize the face as yours... but it feels wrong. Foreign. Like something is missing."

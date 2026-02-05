@@ -1,5 +1,5 @@
 {
-  "runSeed": 104,
+  "runSeed": 202,
   "echoId": 3,
   "stage": "NAV_UNLOCKED",
   "started": true,
@@ -12,7 +12,8 @@
       "entered": true,
       "lookUnlocked": true,
       "revealStep": 3,
-      "bandTaken": true
+      "bandTaken": true,
+      "podRoomRevealed": false
     },
     "darkness": {
       "id": "darkness",
@@ -24,15 +25,26 @@
       "pullLeverUnlocked": true,
       "partialDoorDiscovered": false,
       "tabletDiscovered": false,
-      "tabletTaken": false
+      "tabletTaken": false,
+      "inspectTerminalsStep": 0
     }
   },
-  "heat": 16,
-  "heatCap": 25,
-  "health": 30,
+  "inventory": {
+    "items": ["band"],
+    "resources": {}
+  },
+  "ai": {
+    "unlocked": false,
+    "status": "OFFLINE",
+    "reason": "EMERGENCY POWER RESERVES INSUFFICIENT",
+    "offlineAnnounced": false
+  },
+  "heat": 18,
+  "heatCap": 40,
+  "health": 28,
   "maxHealth": 100,
-  "timeMinutes": 290,
-  "stokeCount": 4,
+  "timeMinutes": 235,
+  "stokeCount": 6,
   "navUnlocked": true,
   "demoComplete": false,
   "thawLineShown": true,

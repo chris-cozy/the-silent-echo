@@ -25,20 +25,33 @@
             <div class="panel__body panel__body--actions" id="actions"></div>
           </section>
 
-          <section class="panel is-hidden" id="vitals-panel">
-            <div class="panel__title">VITALS BAND</div>
-            <div class="panel__body" id="vitals"></div>
+          <section class="panel is-hidden" id="systems-panel">
+            <div class="panel__title panel__title--tabs">
+              <button class="tab-button is-active" id="systems-tab-vitals" type="button">VITALS BAND</button>
+              <button class="tab-button" id="systems-tab-storage" type="button">STORAGE</button>
+            </div>
+            <div class="panel__body" id="systems-vitals"></div>
+            <div class="panel__body is-hidden" id="systems-storage"></div>
           </section>
 
-          <section class="panel is-hidden" id="map-panel">
-            <div class="panel__title">MAP</div>
-            <div class="panel__body panel__body--map" id="map"></div>
+          <section class="panel is-hidden" id="operations-panel">
+            <div class="panel__title panel__title--tabs">
+              <button class="tab-button is-active" id="operations-tab-ai" type="button">AI</button>
+              <button class="tab-button" id="operations-tab-map" type="button">MAP</button>
+              <button class="tab-button" id="operations-tab-nav" type="button">NAV</button>
+            </div>
+            <div class="panel__body ai-panel__body" id="operations-ai">
+              <div class="ai-panel__status" id="ai-status">OFFLINE</div>
+              <div class="ai-panel__reason" id="ai-reason">EMERGENCY POWER RESERVES INSUFFICIENT</div>
+            </div>
+            <div class="panel__body panel__body--map is-hidden" id="operations-map">
+              <div id="map"></div>
+            </div>
+            <div class="panel__body panel__body--nav is-hidden" id="operations-nav">
+              <div id="nav"></div>
+            </div>
           </section>
 
-          <section class="panel is-hidden" id="nav-panel">
-            <div class="panel__title">UNKNOWN PLACE</div>
-            <div class="panel__body panel__body--nav" id="nav"></div>
-          </section>
         </section>
 
         <section class="panel" id="log-panel">

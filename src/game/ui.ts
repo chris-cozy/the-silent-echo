@@ -15,11 +15,22 @@ export class UI {
   private roomTitleEl: HTMLElement;
   private actionsEl: HTMLElement;
   private logEl: HTMLElement;
-  private vitalsPanelEl: HTMLElement;
-  private vitalsEl: HTMLElement;
-  private mapPanelEl: HTMLElement;
+  private systemsPanelEl: HTMLElement;
+  private systemsVitalsEl: HTMLElement;
+  private systemsStorageEl: HTMLElement;
+  private systemsTabVitalsEl: HTMLButtonElement;
+  private systemsTabStorageEl: HTMLButtonElement;
+  private operationsPanelEl: HTMLElement;
+  private operationsAiEl: HTMLElement;
+  private operationsMapEl: HTMLElement;
+  private operationsNavEl: HTMLElement;
+  private operationsTabAiEl: HTMLButtonElement;
+  private operationsTabMapEl: HTMLButtonElement;
+  private operationsTabNavEl: HTMLButtonElement;
+  private aiPanelEl: HTMLElement;
+  private aiStatusEl: HTMLElement;
+  private aiReasonEl: HTMLElement;
   private mapEl: HTMLElement;
-  private navPanelEl: HTMLElement;
   private navEl: HTMLElement;
   private wakeScreenEl: HTMLElement;
   private wakeButtonEl: HTMLButtonElement;
@@ -43,6 +54,12 @@ export class UI {
   private actionButtons: Map<string, HTMLButtonElement>;
   private cooldownItems: Map<string, { button: HTMLButtonElement; endsAt: number; duration: number }>;
   private cooldownRaf: number | null;
+  private systemsTab: "vitals" | "storage";
+  private operationsTab: "ai" | "map" | "nav";
+  private systemsAvailability: { vitals: boolean; storage: boolean };
+  private operationsAvailability: { ai: boolean; map: boolean; nav: boolean };
+  private lastSystemsAvailability: { vitals: boolean; storage: boolean };
+  private lastOperationsAvailability: { ai: boolean; map: boolean; nav: boolean };
 
   constructor(
     onWake: () => void,
@@ -61,15 +78,32 @@ export class UI {
     this.actionButtons = new Map();
     this.cooldownItems = new Map();
     this.cooldownRaf = null;
+    this.systemsTab = "vitals";
+    this.operationsTab = "nav";
+    this.systemsAvailability = { vitals: false, storage: false };
+    this.operationsAvailability = { ai: false, map: false, nav: false };
+    this.lastSystemsAvailability = { vitals: false, storage: false };
+    this.lastOperationsAvailability = { ai: false, map: false, nav: false };
 
     const roomTitleEl = document.getElementById("room-title");
     const actionsEl = document.getElementById("actions");
     const logEl = document.getElementById("log");
-    const vitalsPanelEl = document.getElementById("vitals-panel");
-    const vitalsEl = document.getElementById("vitals");
-    const mapPanelEl = document.getElementById("map-panel");
+    const systemsPanelEl = document.getElementById("systems-panel");
+    const systemsVitalsEl = document.getElementById("systems-vitals");
+    const systemsStorageEl = document.getElementById("systems-storage");
+    const systemsTabVitalsEl = document.getElementById("systems-tab-vitals") as HTMLButtonElement | null;
+    const systemsTabStorageEl = document.getElementById("systems-tab-storage") as HTMLButtonElement | null;
+    const operationsPanelEl = document.getElementById("operations-panel");
+    const operationsAiEl = document.getElementById("operations-ai");
+    const operationsMapEl = document.getElementById("operations-map");
+    const operationsNavEl = document.getElementById("operations-nav");
+    const operationsTabAiEl = document.getElementById("operations-tab-ai") as HTMLButtonElement | null;
+    const operationsTabMapEl = document.getElementById("operations-tab-map") as HTMLButtonElement | null;
+    const operationsTabNavEl = document.getElementById("operations-tab-nav") as HTMLButtonElement | null;
+    const aiPanelEl = document.getElementById("operations-ai");
+    const aiStatusEl = document.getElementById("ai-status");
+    const aiReasonEl = document.getElementById("ai-reason");
     const mapEl = document.getElementById("map");
-    const navPanelEl = document.getElementById("nav-panel");
     const navEl = document.getElementById("nav");
     const wakeScreenEl = document.getElementById("wake-screen");
     const wakeButtonEl = document.getElementById("wake-button") as HTMLButtonElement | null;
@@ -88,11 +122,22 @@ export class UI {
       !roomTitleEl ||
       !actionsEl ||
       !logEl ||
-      !vitalsPanelEl ||
-      !vitalsEl ||
-      !mapPanelEl ||
+      !systemsPanelEl ||
+      !systemsVitalsEl ||
+      !systemsStorageEl ||
+      !systemsTabVitalsEl ||
+      !systemsTabStorageEl ||
+      !operationsPanelEl ||
+      !operationsAiEl ||
+      !operationsMapEl ||
+      !operationsNavEl ||
+      !operationsTabAiEl ||
+      !operationsTabMapEl ||
+      !operationsTabNavEl ||
+      !aiPanelEl ||
+      !aiStatusEl ||
+      !aiReasonEl ||
       !mapEl ||
-      !navPanelEl ||
       !navEl ||
       !wakeScreenEl ||
       !wakeButtonEl ||
@@ -113,11 +158,22 @@ export class UI {
     this.roomTitleEl = roomTitleEl;
     this.actionsEl = actionsEl;
     this.logEl = logEl;
-    this.vitalsPanelEl = vitalsPanelEl;
-    this.vitalsEl = vitalsEl;
-    this.mapPanelEl = mapPanelEl;
+    this.systemsPanelEl = systemsPanelEl;
+    this.systemsVitalsEl = systemsVitalsEl;
+    this.systemsStorageEl = systemsStorageEl;
+    this.systemsTabVitalsEl = systemsTabVitalsEl;
+    this.systemsTabStorageEl = systemsTabStorageEl;
+    this.operationsPanelEl = operationsPanelEl;
+    this.operationsAiEl = operationsAiEl;
+    this.operationsMapEl = operationsMapEl;
+    this.operationsNavEl = operationsNavEl;
+    this.operationsTabAiEl = operationsTabAiEl;
+    this.operationsTabMapEl = operationsTabMapEl;
+    this.operationsTabNavEl = operationsTabNavEl;
+    this.aiPanelEl = aiPanelEl;
+    this.aiStatusEl = aiStatusEl;
+    this.aiReasonEl = aiReasonEl;
     this.mapEl = mapEl;
-    this.navPanelEl = navPanelEl;
     this.navEl = navEl;
     this.wakeScreenEl = wakeScreenEl;
     this.wakeButtonEl = wakeButtonEl;
@@ -135,6 +191,12 @@ export class UI {
     this.wakeButtonEl.addEventListener("click", () => this.onWake());
     this.deathButtonEl.addEventListener("click", () => this.onDeathAcknowledge());
     this.restartButtonEl.addEventListener("click", () => this.onRestart());
+
+    this.systemsTabVitalsEl.addEventListener("click", () => this.setSystemsTab("vitals"));
+    this.systemsTabStorageEl.addEventListener("click", () => this.setSystemsTab("storage"));
+    this.operationsTabAiEl.addEventListener("click", () => this.setOperationsTab("ai"));
+    this.operationsTabMapEl.addEventListener("click", () => this.setOperationsTab("map"));
+    this.operationsTabNavEl.addEventListener("click", () => this.setOperationsTab("nav"));
   }
 
   clearLogs(): void {
@@ -237,16 +299,17 @@ export class UI {
     visible: boolean,
     vitals: { health: number; healthMax: number; heat: number; heatMax: number; time: string } | null
   ): void {
-    this.vitalsPanelEl.classList.toggle("is-hidden", !visible);
+    this.systemsAvailability.vitals = visible;
     if (!visible || !vitals) {
-      this.vitalsEl.innerHTML = "";
+      this.systemsVitalsEl.innerHTML = "";
+      this.updateSystemsPanel();
       return;
     }
 
     const healthRatio = Math.max(0, Math.min(1, vitals.health / vitals.healthMax));
     const heatRatio = Math.max(0, Math.min(1, vitals.heat / vitals.heatMax));
 
-    this.vitalsEl.innerHTML = `
+    this.systemsVitalsEl.innerHTML = `
       <div class="vitals-band">
         <div class="vitals-band__time">${vitals.time}</div>
         <div class="vitals-band__meters">
@@ -267,17 +330,73 @@ export class UI {
         </div>
       </div>
     `;
+    this.updateSystemsPanel();
+  }
+
+  setStorage(storage: { visible: boolean; items: string[]; resources: { id: string; count: number }[]; showResources: boolean }): void {
+    this.systemsAvailability.storage = storage.visible;
+    if (!storage.visible) {
+      this.systemsStorageEl.innerHTML = "";
+      this.updateSystemsPanel();
+      return;
+    }
+
+    const items = storage.items.length > 0 ? storage.items : ["None"];
+    const resources = storage.resources.map((entry) => `${entry.id}: ${entry.count}`);
+
+    const resourcesSection = storage.showResources
+      ? `
+      <div class="storage-section">
+        <div class="storage-section__title">Resources</div>
+        <div class="storage-section__body">
+          ${resources.map((item) => `<div class="storage-item">${item}</div>`).join("")}
+        </div>
+      </div>
+    `
+      : "";
+
+    this.systemsStorageEl.innerHTML = `
+      <div class="storage-section">
+        <div class="storage-section__title">Items</div>
+        <div class="storage-section__body">
+          ${items.map((item) => `<div class="storage-item">${item}</div>`).join("")}
+        </div>
+      </div>
+      ${resourcesSection}
+    `;
+    this.updateSystemsPanel();
+  }
+
+  setAiPanel(ai: { visible: boolean; status: string; reason: string }): void {
+    this.operationsAvailability.ai = ai.visible;
+    this.aiPanelEl.classList.toggle("is-hidden", !ai.visible);
+    if (!ai.visible) {
+      this.updateOperationsPanel();
+      return;
+    }
+
+    this.aiStatusEl.textContent = ai.status;
+    this.aiReasonEl.textContent = ai.reason;
+    this.updateOperationsPanel();
   }
 
   setMap(visible: boolean, text: string): void {
-    this.mapPanelEl.classList.toggle("is-hidden", !visible);
-    this.mapEl.textContent = text;
+    this.operationsAvailability.map = visible;
+    this.operationsMapEl.classList.toggle("is-hidden", !visible);
+    if (visible) {
+      this.mapEl.textContent = text;
+    } else {
+      this.mapEl.textContent = "";
+    }
+    this.updateOperationsPanel();
   }
 
   setNavigation(state: NavigationState): void {
-    this.navPanelEl.classList.toggle("is-hidden", !state.visible);
+    this.operationsAvailability.nav = state.visible;
+    this.operationsNavEl.classList.toggle("is-hidden", !state.visible);
     if (!state.visible) {
       this.navEl.innerHTML = "";
+      this.updateOperationsPanel();
       return;
     }
 
@@ -316,6 +435,7 @@ export class UI {
 
       this.navEl.appendChild(row);
     }
+    this.updateOperationsPanel();
   }
 
   logSystem(message: string): void {
@@ -393,6 +513,98 @@ export class UI {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  private setSystemsTab(tab: "vitals" | "storage"): void {
+    if (!this.systemsAvailability[tab]) {
+      return;
+    }
+    this.systemsTab = tab;
+    this.updateSystemsPanel();
+  }
+
+  private setOperationsTab(tab: "ai" | "map" | "nav"): void {
+    if (!this.operationsAvailability[tab]) {
+      return;
+    }
+    this.operationsTab = tab;
+    this.updateOperationsPanel();
+  }
+
+  private updateSystemsPanel(): void {
+    const { vitals, storage } = this.systemsAvailability;
+    const newlyUnlockedVitals = vitals && !this.lastSystemsAvailability.vitals;
+    const newlyUnlockedStorage = storage && !this.lastSystemsAvailability.storage;
+    const anyVisible = vitals || storage;
+    this.systemsPanelEl.classList.toggle("is-hidden", !anyVisible);
+    if (!anyVisible) {
+      this.lastSystemsAvailability = { ...this.systemsAvailability };
+      return;
+    }
+
+    if (newlyUnlockedStorage) {
+      this.systemsTab = "storage";
+    } else if (newlyUnlockedVitals) {
+      this.systemsTab = "vitals";
+    }
+
+    if (!this.systemsAvailability[this.systemsTab]) {
+      this.systemsTab = vitals ? "vitals" : "storage";
+    }
+
+    this.systemsTabVitalsEl.classList.toggle("is-hidden", !vitals);
+    this.systemsTabStorageEl.classList.toggle("is-hidden", !storage);
+
+    this.systemsTabVitalsEl.classList.toggle("is-active", this.systemsTab === "vitals");
+    this.systemsTabStorageEl.classList.toggle("is-active", this.systemsTab === "storage");
+
+    this.systemsVitalsEl.classList.toggle("is-hidden", this.systemsTab !== "vitals");
+    this.systemsStorageEl.classList.toggle("is-hidden", this.systemsTab !== "storage");
+    this.lastSystemsAvailability = { ...this.systemsAvailability };
+  }
+
+  private updateOperationsPanel(): void {
+    const { ai, map, nav } = this.operationsAvailability;
+    const newlyUnlockedAi = ai && !this.lastOperationsAvailability.ai;
+    const newlyUnlockedMap = map && !this.lastOperationsAvailability.map;
+    const newlyUnlockedNav = nav && !this.lastOperationsAvailability.nav;
+    const anyVisible = ai || map || nav;
+    this.operationsPanelEl.classList.toggle("is-hidden", !anyVisible);
+    if (!anyVisible) {
+      this.lastOperationsAvailability = { ...this.operationsAvailability };
+      return;
+    }
+
+    if (newlyUnlockedAi) {
+      this.operationsTab = "ai";
+    } else if (newlyUnlockedMap) {
+      this.operationsTab = "map";
+    } else if (newlyUnlockedNav) {
+      this.operationsTab = "nav";
+    }
+
+    if (!this.operationsAvailability[this.operationsTab]) {
+      if (ai) {
+        this.operationsTab = "ai";
+      } else if (map) {
+        this.operationsTab = "map";
+      } else {
+        this.operationsTab = "nav";
+      }
+    }
+
+    this.operationsTabAiEl.classList.toggle("is-hidden", !ai);
+    this.operationsTabMapEl.classList.toggle("is-hidden", !map);
+    this.operationsTabNavEl.classList.toggle("is-hidden", !nav);
+
+    this.operationsTabAiEl.classList.toggle("is-active", this.operationsTab === "ai");
+    this.operationsTabMapEl.classList.toggle("is-active", this.operationsTab === "map");
+    this.operationsTabNavEl.classList.toggle("is-active", this.operationsTab === "nav");
+
+    this.operationsAiEl.classList.toggle("is-hidden", this.operationsTab !== "ai");
+    this.operationsMapEl.classList.toggle("is-hidden", this.operationsTab !== "map");
+    this.operationsNavEl.classList.toggle("is-hidden", this.operationsTab !== "nav");
+    this.lastOperationsAvailability = { ...this.operationsAvailability };
   }
 
   private startCooldownLoop(): void {

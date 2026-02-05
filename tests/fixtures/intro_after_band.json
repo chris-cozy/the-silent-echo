@@ -12,7 +12,8 @@
       "entered": true,
       "lookUnlocked": true,
       "revealStep": 2,
-      "bandTaken": true
+      "bandTaken": true,
+      "podRoomRevealed": false
     },
     "darkness": {
       "id": "darkness",
@@ -24,8 +25,19 @@
       "pullLeverUnlocked": false,
       "partialDoorDiscovered": false,
       "tabletDiscovered": false,
-      "tabletTaken": false
+      "tabletTaken": false,
+      "inspectTerminalsStep": 0
     }
+  },
+  "inventory": {
+    "items": ["band"],
+    "resources": {}
+  },
+  "ai": {
+    "unlocked": false,
+    "status": "OFFLINE",
+    "reason": "EMERGENCY POWER RESERVES INSUFFICIENT",
+    "offlineAnnounced": false
   },
   "heat": 15,
   "heatCap": 20,

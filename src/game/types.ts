@@ -1,5 +1,6 @@
 export type ResourceId = "heat" | "air" | "water" | "food" | "power";
 export type RoomId = "dark_room" | "darkness";
+export type ItemId = "band" | "tablet";
 
 export interface RoomDef {
   id: string;
@@ -52,6 +53,7 @@ export interface DarkRoomState {
   lookUnlocked: boolean;
   revealStep: number;
   bandTaken: boolean;
+  podRoomRevealed: boolean;
 }
 
 export interface DarknessRoomState {
@@ -65,6 +67,19 @@ export interface DarknessRoomState {
   partialDoorDiscovered: boolean;
   tabletDiscovered: boolean;
   tabletTaken: boolean;
+  inspectTerminalsStep: number;
+}
+
+export interface InventoryState {
+  items: ItemId[];
+  resources: Record<string, number>;
+}
+
+export interface AiState {
+  unlocked: boolean;
+  status: "OFFLINE";
+  reason: "EMERGENCY POWER RESERVES INSUFFICIENT";
+  offlineAnnounced: boolean;
 }
 
 export interface GameState {
@@ -78,6 +93,8 @@ export interface GameState {
     dark_room: DarkRoomState;
     darkness: DarknessRoomState;
   };
+  inventory: InventoryState;
+  ai: AiState;
   heat: number;
   heatCap: number;
   health: number;

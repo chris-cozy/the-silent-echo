@@ -197,6 +197,9 @@ class Game {
         darkRoom.revealStep = 3;
         darkRoom.bandTaken = true;
         darkRoom.displayName = "A DARK ROOM";
+        if (!this.state.inventory.items.includes("band")) {
+            this.state.inventory.items.push("band");
+        }
         this.state.navUnlocked = true;
         this.state.currentRoomId = ROOM_DARK_ROOM;
         this.state.heatCap = 120;
@@ -237,6 +240,7 @@ class Game {
         const clamped = Math.max(0, Math.min(3, Math.floor(step)));
         const darkRoom = this.state.rooms.dark_room;
         darkRoom.revealStep = clamped;
+        darkRoom.podRoomRevealed = false;
         if (clamped > 0) {
             darkRoom.lookUnlocked = true;
         }
@@ -275,6 +279,9 @@ class Game {
         const clamped = Math.max(0, Math.min(4, Math.floor(step)));
         const darkness = this.state.rooms.darkness;
         darkness.lookStep = clamped;
+        if (clamped < 3) {
+            darkness.inspectTerminalsStep = 0;
+        }
         if (clamped >= 1) {
             darkness.displayName = "A DIMLY LIT ROOM";
         }
@@ -313,6 +320,9 @@ class Game {
         darkness.tabletDiscovered = darkness.tabletDiscovered || value;
         darkness.tabletTaken = value;
         this.state.playerName = value ? "???" : "_____";
+        if (value && !this.state.inventory.items.includes("tablet")) {
+            this.state.inventory.items.push("tablet");
+        }
         this.render();
     }
     debugAdvanceTime(ms) {
@@ -376,6 +386,8 @@ class Game {
         this.ui.setRoomTitle(uiState.roomTitle);
         this.ui.setActions(uiState.actions);
         this.ui.setVitals(this.state.rooms.dark_room.bandTaken, uiState.vitals);
+        this.ui.setStorage(uiState.storage);
+        this.ui.setAiPanel(uiState.aiPanel);
         this.ui.setMap(false, "");
         this.ui.setNavigation(uiState.navigation);
         this.ui.setDeathVisible(this.state.stage === "DEATH_PENDING");

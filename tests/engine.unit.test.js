@@ -80,3 +80,90 @@ test("derived UI reflects room actions", () => {
   assert.ok(commands.includes("look around"));
   assert.ok(commands.includes("take band"));
 });
+
+test("taking the band adds it to inventory", () => {
+  const run = createRun();
+  wake(run);
+
+  run.state.rooms.dark_room.revealStep = 2;
+  action(run, "take band");
+
+  assert.ok(run.state.inventory.items.includes("band"));
+});
+
+test("picking up the tablet adds it to inventory", () => {
+  const run = createRun();
+  wake(run);
+
+  run.state.currentRoomId = ROOM_DARKNESS;
+  run.state.rooms.darkness.tabletDiscovered = true;
+  action(run, "pick up tablet");
+
+  assert.ok(run.state.inventory.items.includes("tablet"));
+});
+
+test("derived storage reflects inventory items", () => {
+  const run = createRun();
+  wake(run);
+
+  run.state.inventory.items.push("band");
+  const ui = derive(run);
+  assert.equal(ui.storage.visible, true);
+  assert.ok(ui.storage.items.includes("Vitals Band"));
+});
+
+test("inspect terminals gated until terminals are discovered", () => {
+  const run = createRun();
+  wake(run);
+
+  run.state.currentRoomId = ROOM_DARKNESS;
+  run.state.rooms.darkness.leverPulled = true;
+  run.state.rooms.darkness.lookStep = 2;
+
+  let ui = derive(run);
+  assert.ok(!ui.actions.some((item) => item.command === "inspect terminals"));
+
+  run.state.rooms.darkness.lookStep = 3;
+  ui = derive(run);
+  assert.ok(ui.actions.some((item) => item.command === "inspect terminals"));
+});
+
+test("inspect terminals unlocks AI and emits system log once", () => {
+  const run = createRun();
+  wake(run);
+
+  run.state.currentRoomId = ROOM_DARKNESS;
+  run.state.rooms.darkness.leverPulled = true;
+  run.state.rooms.darkness.lookStep = 3;
+
+  let outcome = action(run, "inspect terminals");
+  assert.ok(!outcome.logs.some((log) => log.kind === "system" && log.key === "ai_offline"));
+
+  outcome = action(run, "inspect terminals");
+  assert.equal(run.state.ai.unlocked, true);
+  assert.ok(outcome.logs.some((log) => log.kind === "system" && log.key === "ai_offline"));
+
+  outcome = action(run, "inspect terminals");
+  assert.ok(!outcome.logs.some((log) => log.kind === "system" && log.key === "ai_offline"));
+
+  const ui = derive(run);
+  assert.equal(ui.aiPanel.visible, true);
+});
+
+test("pod room reveal triggers once after lever pulled", () => {
+  const run = createRun();
+  wake(run);
+
+  run.state.rooms.dark_room.revealStep = 3;
+  run.state.rooms.dark_room.lookUnlocked = true;
+  run.state.rooms.dark_room.displayName = "A DARK ROOM";
+  run.state.rooms.darkness.leverPulled = true;
+  run.state.heat = 10;
+
+  let outcome = action(run, "look around");
+  assert.ok(outcome.logs.some((log) => log.key === "pod_room_reveal"));
+  assert.equal(run.state.rooms.dark_room.displayName, "POD ROOM");
+
+  outcome = action(run, "look around");
+  assert.ok(outcome.logs.some((log) => log.key === "look_repeat"));
+});
