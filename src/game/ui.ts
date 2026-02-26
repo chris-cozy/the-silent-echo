@@ -1,4 +1,4 @@
-import type { ActionButtonState, NavigationState } from "./uiTypes.js";
+import type { ActionButtonState, NavigationState, PowerPanelState } from "./uiTypes.js";
 
 type LogKind = "system" | "narrative";
 
@@ -13,7 +13,10 @@ const MAX_LOG_LINES = 20;
 
 export class UI {
   private roomTitleEl: HTMLElement;
+  private roomTabActionsEl: HTMLButtonElement;
+  private roomTabPowerEl: HTMLButtonElement;
   private actionsEl: HTMLElement;
+  private powerPanelEl: HTMLElement;
   private logEl: HTMLElement;
   private systemsPanelEl: HTMLElement;
   private systemsVitalsEl: HTMLElement;
@@ -22,15 +25,14 @@ export class UI {
   private systemsTabStorageEl: HTMLButtonElement;
   private operationsPanelEl: HTMLElement;
   private operationsAiEl: HTMLElement;
-  private operationsMapEl: HTMLElement;
   private operationsNavEl: HTMLElement;
   private operationsTabAiEl: HTMLButtonElement;
-  private operationsTabMapEl: HTMLButtonElement;
   private operationsTabNavEl: HTMLButtonElement;
   private aiPanelEl: HTMLElement;
   private aiStatusEl: HTMLElement;
   private aiReasonEl: HTMLElement;
-  private mapEl: HTMLElement;
+  private aiMessageEl: HTMLElement;
+  private aiQueryButtonEl: HTMLButtonElement;
   private navEl: HTMLElement;
   private wakeScreenEl: HTMLElement;
   private wakeButtonEl: HTMLButtonElement;
@@ -54,12 +56,14 @@ export class UI {
   private actionButtons: Map<string, HTMLButtonElement>;
   private cooldownItems: Map<string, { button: HTMLButtonElement; endsAt: number; duration: number }>;
   private cooldownRaf: number | null;
+  private roomTab: "actions" | "power";
+  private powerPanelState: PowerPanelState;
   private systemsTab: "vitals" | "storage";
-  private operationsTab: "ai" | "map" | "nav";
+  private operationsTab: "ai" | "nav";
   private systemsAvailability: { vitals: boolean; storage: boolean };
-  private operationsAvailability: { ai: boolean; map: boolean; nav: boolean };
+  private operationsAvailability: { ai: boolean; nav: boolean };
   private lastSystemsAvailability: { vitals: boolean; storage: boolean };
-  private lastOperationsAvailability: { ai: boolean; map: boolean; nav: boolean };
+  private lastOperationsAvailability: { ai: boolean; nav: boolean };
 
   constructor(
     onWake: () => void,
@@ -78,15 +82,20 @@ export class UI {
     this.actionButtons = new Map();
     this.cooldownItems = new Map();
     this.cooldownRaf = null;
+    this.roomTab = "actions";
+    this.powerPanelState = { unlocked: false, inPowerRoom: false, availablePower: 0, rows: [] };
     this.systemsTab = "vitals";
     this.operationsTab = "nav";
     this.systemsAvailability = { vitals: false, storage: false };
-    this.operationsAvailability = { ai: false, map: false, nav: false };
+    this.operationsAvailability = { ai: false, nav: false };
     this.lastSystemsAvailability = { vitals: false, storage: false };
-    this.lastOperationsAvailability = { ai: false, map: false, nav: false };
+    this.lastOperationsAvailability = { ai: false, nav: false };
 
     const roomTitleEl = document.getElementById("room-title");
+    const roomTabActionsEl = document.getElementById("room-tab-actions") as HTMLButtonElement | null;
+    const roomTabPowerEl = document.getElementById("room-tab-power") as HTMLButtonElement | null;
     const actionsEl = document.getElementById("actions");
+    const powerPanelEl = document.getElementById("power-panel");
     const logEl = document.getElementById("log");
     const systemsPanelEl = document.getElementById("systems-panel");
     const systemsVitalsEl = document.getElementById("systems-vitals");
@@ -95,15 +104,14 @@ export class UI {
     const systemsTabStorageEl = document.getElementById("systems-tab-storage") as HTMLButtonElement | null;
     const operationsPanelEl = document.getElementById("operations-panel");
     const operationsAiEl = document.getElementById("operations-ai");
-    const operationsMapEl = document.getElementById("operations-map");
     const operationsNavEl = document.getElementById("operations-nav");
     const operationsTabAiEl = document.getElementById("operations-tab-ai") as HTMLButtonElement | null;
-    const operationsTabMapEl = document.getElementById("operations-tab-map") as HTMLButtonElement | null;
     const operationsTabNavEl = document.getElementById("operations-tab-nav") as HTMLButtonElement | null;
     const aiPanelEl = document.getElementById("operations-ai");
     const aiStatusEl = document.getElementById("ai-status");
     const aiReasonEl = document.getElementById("ai-reason");
-    const mapEl = document.getElementById("map");
+    const aiMessageEl = document.getElementById("ai-message");
+    const aiQueryButtonEl = document.getElementById("ai-query-button") as HTMLButtonElement | null;
     const navEl = document.getElementById("nav");
     const wakeScreenEl = document.getElementById("wake-screen");
     const wakeButtonEl = document.getElementById("wake-button") as HTMLButtonElement | null;
@@ -120,7 +128,10 @@ export class UI {
 
     if (
       !roomTitleEl ||
+      !roomTabActionsEl ||
+      !roomTabPowerEl ||
       !actionsEl ||
+      !powerPanelEl ||
       !logEl ||
       !systemsPanelEl ||
       !systemsVitalsEl ||
@@ -129,15 +140,14 @@ export class UI {
       !systemsTabStorageEl ||
       !operationsPanelEl ||
       !operationsAiEl ||
-      !operationsMapEl ||
       !operationsNavEl ||
       !operationsTabAiEl ||
-      !operationsTabMapEl ||
       !operationsTabNavEl ||
       !aiPanelEl ||
       !aiStatusEl ||
       !aiReasonEl ||
-      !mapEl ||
+      !aiMessageEl ||
+      !aiQueryButtonEl ||
       !navEl ||
       !wakeScreenEl ||
       !wakeButtonEl ||
@@ -156,7 +166,10 @@ export class UI {
     }
 
     this.roomTitleEl = roomTitleEl;
+    this.roomTabActionsEl = roomTabActionsEl;
+    this.roomTabPowerEl = roomTabPowerEl;
     this.actionsEl = actionsEl;
+    this.powerPanelEl = powerPanelEl;
     this.logEl = logEl;
     this.systemsPanelEl = systemsPanelEl;
     this.systemsVitalsEl = systemsVitalsEl;
@@ -165,15 +178,14 @@ export class UI {
     this.systemsTabStorageEl = systemsTabStorageEl;
     this.operationsPanelEl = operationsPanelEl;
     this.operationsAiEl = operationsAiEl;
-    this.operationsMapEl = operationsMapEl;
     this.operationsNavEl = operationsNavEl;
     this.operationsTabAiEl = operationsTabAiEl;
-    this.operationsTabMapEl = operationsTabMapEl;
     this.operationsTabNavEl = operationsTabNavEl;
     this.aiPanelEl = aiPanelEl;
     this.aiStatusEl = aiStatusEl;
     this.aiReasonEl = aiReasonEl;
-    this.mapEl = mapEl;
+    this.aiMessageEl = aiMessageEl;
+    this.aiQueryButtonEl = aiQueryButtonEl;
     this.navEl = navEl;
     this.wakeScreenEl = wakeScreenEl;
     this.wakeButtonEl = wakeButtonEl;
@@ -195,8 +207,13 @@ export class UI {
     this.systemsTabVitalsEl.addEventListener("click", () => this.setSystemsTab("vitals"));
     this.systemsTabStorageEl.addEventListener("click", () => this.setSystemsTab("storage"));
     this.operationsTabAiEl.addEventListener("click", () => this.setOperationsTab("ai"));
-    this.operationsTabMapEl.addEventListener("click", () => this.setOperationsTab("map"));
     this.operationsTabNavEl.addEventListener("click", () => this.setOperationsTab("nav"));
+    this.roomTabActionsEl.addEventListener("click", () => this.setRoomTab("actions"));
+    this.roomTabPowerEl.addEventListener("click", () => this.setRoomTab("power"));
+    this.aiQueryButtonEl.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      this.onAction("query");
+    });
   }
 
   clearLogs(): void {
@@ -293,6 +310,8 @@ export class UI {
         this.cooldownItems.delete(command);
       }
     }
+
+    this.updateRoomPanel();
   }
 
   setVitals(
@@ -367,28 +386,106 @@ export class UI {
     this.updateSystemsPanel();
   }
 
-  setAiPanel(ai: { visible: boolean; status: string; reason: string }): void {
+  setAiPanel(ai: { visible: boolean; status: string; reason: string; message: string; queryAvailable: boolean }): void {
     this.operationsAvailability.ai = ai.visible;
     this.aiPanelEl.classList.toggle("is-hidden", !ai.visible);
     if (!ai.visible) {
+      this.aiMessageEl.textContent = "";
+      this.aiQueryButtonEl.classList.add("is-hidden");
       this.updateOperationsPanel();
       return;
     }
 
     this.aiStatusEl.textContent = ai.status;
     this.aiReasonEl.textContent = ai.reason;
+    this.aiMessageEl.textContent = ai.message;
+    this.aiQueryButtonEl.classList.toggle("is-hidden", !ai.queryAvailable);
     this.updateOperationsPanel();
   }
 
   setMap(visible: boolean, text: string): void {
-    this.operationsAvailability.map = visible;
-    this.operationsMapEl.classList.toggle("is-hidden", !visible);
-    if (visible) {
-      this.mapEl.textContent = text;
-    } else {
-      this.mapEl.textContent = "";
-    }
+    void visible;
+    void text;
     this.updateOperationsPanel();
+  }
+
+  setPowerPanel(state: PowerPanelState): void {
+    const wasUnlocked = this.powerPanelState.unlocked;
+    this.powerPanelState = state;
+    this.powerPanelEl.innerHTML = "";
+    if (state.unlocked && !wasUnlocked && state.inPowerRoom) {
+      this.roomTab = "power";
+    }
+    if (!state.unlocked) {
+      this.updateRoomPanel();
+      return;
+    }
+
+    const available = document.createElement("div");
+    available.className = "power-panel__meta";
+    available.textContent = `Available Power: ${state.availablePower}`;
+    this.powerPanelEl.appendChild(available);
+
+    const general = document.createElement("div");
+    general.className = "power-panel__meta";
+    general.textContent = "General Power Allocation: Locked";
+    this.powerPanelEl.appendChild(general);
+
+    for (const row of state.rows) {
+      const el = document.createElement("div");
+      el.className = "power-row";
+
+      const label = document.createElement("div");
+      label.className = "power-row__label";
+      label.textContent = row.label;
+
+      const units = document.createElement("div");
+      units.className = "power-row__units";
+      units.textContent = `${row.units}`;
+
+      const inc = document.createElement("button");
+      inc.type = "button";
+      inc.className = "nav-button";
+      inc.disabled = row.locked || !row.canIncrease;
+      inc.innerHTML = "<span>▲</span>";
+      inc.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        this.onAction(`allocation increase:${row.id}`);
+      });
+
+      const dec = document.createElement("button");
+      dec.type = "button";
+      dec.className = "nav-button";
+      dec.disabled = row.locked || !row.canDecrease;
+      dec.innerHTML = "<span>▼</span>";
+      dec.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        this.onAction(`allocation decrease:${row.id}`);
+      });
+
+      const inspect = document.createElement("button");
+      inspect.type = "button";
+      inspect.className = "nav-button";
+      inspect.disabled = !row.warningInspectable;
+      inspect.innerHTML = `<span>${row.locked ? "LOCKED" : "INFO"}</span>`;
+      inspect.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        if (row.locked) {
+          this.onAction(`allocation increase:${row.id}`);
+          return;
+        }
+        this.onAction(`inspect failure:${row.id}`);
+      });
+
+      el.appendChild(label);
+      el.appendChild(units);
+      el.appendChild(inc);
+      el.appendChild(dec);
+      el.appendChild(inspect);
+      this.powerPanelEl.appendChild(el);
+    }
+
+    this.updateRoomPanel();
   }
 
   setNavigation(state: NavigationState): void {
@@ -422,7 +519,7 @@ export class UI {
         enterButton.disabled = !entry.canEnter;
 
         const enterText = document.createElement("span");
-        enterText.textContent = "ENTER";
+        enterText.textContent = entry.actionLabel ?? "ENTER";
         enterButton.appendChild(enterText);
         enterButton.addEventListener("pointerdown", (event) => {
           event.preventDefault();
@@ -523,12 +620,42 @@ export class UI {
     this.updateSystemsPanel();
   }
 
-  private setOperationsTab(tab: "ai" | "map" | "nav"): void {
+  private setRoomTab(tab: "actions" | "power"): void {
+    if (tab === "power") {
+      if (!this.powerPanelState.unlocked) {
+        return;
+      }
+      if (!this.powerPanelState.inPowerRoom) {
+        this.onAction("open power tab");
+        this.roomTab = "actions";
+        this.updateRoomPanel();
+        return;
+      }
+    }
+
+    this.roomTab = tab;
+    this.updateRoomPanel();
+  }
+
+  private setOperationsTab(tab: "ai" | "nav"): void {
     if (!this.operationsAvailability[tab]) {
       return;
     }
     this.operationsTab = tab;
     this.updateOperationsPanel();
+  }
+
+  private updateRoomPanel(): void {
+    const powerVisible = this.powerPanelState.unlocked;
+    this.roomTabPowerEl.classList.toggle("is-hidden", !powerVisible);
+    if (!powerVisible || !this.powerPanelState.inPowerRoom) {
+      this.roomTab = "actions";
+    }
+
+    this.roomTabActionsEl.classList.toggle("is-active", this.roomTab === "actions");
+    this.roomTabPowerEl.classList.toggle("is-active", this.roomTab === "power");
+    this.actionsEl.classList.toggle("is-hidden", this.roomTab !== "actions");
+    this.powerPanelEl.classList.toggle("is-hidden", this.roomTab !== "power");
   }
 
   private updateSystemsPanel(): void {
@@ -564,11 +691,10 @@ export class UI {
   }
 
   private updateOperationsPanel(): void {
-    const { ai, map, nav } = this.operationsAvailability;
+    const { ai, nav } = this.operationsAvailability;
     const newlyUnlockedAi = ai && !this.lastOperationsAvailability.ai;
-    const newlyUnlockedMap = map && !this.lastOperationsAvailability.map;
     const newlyUnlockedNav = nav && !this.lastOperationsAvailability.nav;
-    const anyVisible = ai || map || nav;
+    const anyVisible = ai || nav;
     this.operationsPanelEl.classList.toggle("is-hidden", !anyVisible);
     if (!anyVisible) {
       this.lastOperationsAvailability = { ...this.operationsAvailability };
@@ -577,8 +703,6 @@ export class UI {
 
     if (newlyUnlockedAi) {
       this.operationsTab = "ai";
-    } else if (newlyUnlockedMap) {
-      this.operationsTab = "map";
     } else if (newlyUnlockedNav) {
       this.operationsTab = "nav";
     }
@@ -586,23 +710,18 @@ export class UI {
     if (!this.operationsAvailability[this.operationsTab]) {
       if (ai) {
         this.operationsTab = "ai";
-      } else if (map) {
-        this.operationsTab = "map";
       } else {
         this.operationsTab = "nav";
       }
     }
 
     this.operationsTabAiEl.classList.toggle("is-hidden", !ai);
-    this.operationsTabMapEl.classList.toggle("is-hidden", !map);
     this.operationsTabNavEl.classList.toggle("is-hidden", !nav);
 
     this.operationsTabAiEl.classList.toggle("is-active", this.operationsTab === "ai");
-    this.operationsTabMapEl.classList.toggle("is-active", this.operationsTab === "map");
     this.operationsTabNavEl.classList.toggle("is-active", this.operationsTab === "nav");
 
     this.operationsAiEl.classList.toggle("is-hidden", this.operationsTab !== "ai");
-    this.operationsMapEl.classList.toggle("is-hidden", this.operationsTab !== "map");
     this.operationsNavEl.classList.toggle("is-hidden", this.operationsTab !== "nav");
     this.lastOperationsAvailability = { ...this.operationsAvailability };
   }

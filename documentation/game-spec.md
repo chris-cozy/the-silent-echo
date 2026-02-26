@@ -10,8 +10,12 @@ Build a terminal-style, text-based sci-fi horror survival game explicitly inspir
 
 - Near-black start screen with `WAKE UP...` and boot sequence.
 - Intro loop is LOG-driven with hidden heat/health pressure.
-- Progression gates: `STOKE REACTOR` -> `LOOK AROUND` staged reveals -> `TAKE THE BAND` -> `ENTER`.
-- Demo currently ends on first doorway `ENTER` and supports full restart.
+- Progression gates now span multiple rooms:
+  - `STOKE EMBERS` -> `LOOK AROUND` staged reveals -> `TAKE THE BAND`
+  - control-room discovery (`FEEL AROUND` / `PULL LEVER` / `INSPECT TERMINALS`)
+  - hub and research exploration into service passages
+  - power allocation + AI query loop -> emergency toolkit
+- Demo currently ends when the emergency toolkit is added to STORAGE.
 
 ## Design Principles (A Dark Room Model)
 
@@ -26,9 +30,9 @@ Build a terminal-style, text-based sci-fi horror survival game explicitly inspir
 - Retro-futuristic UI that looks like a terminal, but runs in a modern browser.
 - Green monochrome with scanline flicker, subtle glow, and boot-like transitions.
 - The interface starts as a single central action button with only a side LOG panel visible.
-- Panels unlock progressively: SYSTEM -> COMMANDS -> AI -> MAP.
+- Panels unlock progressively through tabbed stacks: `VITALS BAND`/`STORAGE` and `AI`/`NAV`.
 - LOG remains persistent on the side and records each action/event as short narrative sentences.
-- MAP is rendered as a visual ASCII-style node graph, not just a room list.
+- Navigation remains graph-driven and spoiler-aware; labels update as rooms are discovered.
 - Typed commands remain required for certain actions even after automation unlocks.
 
 ### UI Progression (Example)

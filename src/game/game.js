@@ -1,6 +1,6 @@
 import { UI } from "./ui.js";
 import { createSeededRng, LogVariantService } from "./logVariants.js";
-import { advanceTime, applyAction, applyEnterLocation, beginBoot, completeBoot, createInitialRuntime, createInitialState, deriveUiState, syncNow, ROOM_DARKNESS, ROOM_DARK_ROOM } from "./engine.js";
+import { advanceTime, applyAction, applyEnterLocation, beginBoot, completeBoot, createInitialRuntime, createInitialState, deriveUiState, ROOM_CONTROL_ROOM, ROOM_POD_ROOM, syncNow } from "./engine.js";
 const BOOT_LINES = [
     "SYNCING ECHO MEMORY...",
     "CHECKING LIFE-SUPPORT BUS...",
@@ -34,16 +34,22 @@ export async function startGame() {
     });
     game = new Game(ui);
     game.init();
+    const tickToggle = document.getElementById("tick-toggle");
+    if (import.meta.env.DEV && tickToggle) {
+        tickToggle.classList.remove("is-hidden");
+        tickToggle.textContent = "PAUSE TICK";
+        tickToggle.addEventListener("click", () => {
+            if (!game) {
+                return;
+            }
+            const running = game.toggleTickLoop();
+            tickToggle.textContent = running ? "PAUSE TICK" : "RESUME TICK";
+        });
+    }
     if (import.meta.env.DEV) {
         const debugApi = {
-            boostVitals: () => {
-                game?.debugBoostVitals();
-            },
-            unlockLook: () => {
-                game?.debugUnlockLook();
-            },
-            jumpReveal3: () => {
-                game?.debugJumpReveal3();
+            setRoom: (roomId) => {
+                game?.debugSetRoom(roomId);
             },
             setHeat: (value) => {
                 game?.debugSetHeat(value);
@@ -51,38 +57,8 @@ export async function startGame() {
             setHealth: (value) => {
                 game?.debugSetHealth(value);
             },
-            setHeatCap: (value) => {
-                game?.debugSetHeatCap(value);
-            },
             setTimeMinutes: (value) => {
                 game?.debugSetTimeMinutes(value);
-            },
-            setRoom: (roomId) => {
-                game?.debugSetRoom(roomId);
-            },
-            setRevealStep: (step) => {
-                game?.debugSetRevealStep(step);
-            },
-            setFeelStep: (step) => {
-                game?.debugSetFeelStep(step);
-            },
-            setLookStep: (step) => {
-                game?.debugSetLookStep(step);
-            },
-            setNavUnlocked: (value) => {
-                game?.debugSetNavUnlocked(value);
-            },
-            setLeverPulled: (value) => {
-                game?.debugSetLeverPulled(value);
-            },
-            setPullLeverUnlocked: (value) => {
-                game?.debugSetPullLeverUnlocked(value);
-            },
-            setPartialDoorDiscovered: (value) => {
-                game?.debugSetPartialDoorDiscovered(value);
-            },
-            setTabletTaken: (value) => {
-                game?.debugSetTabletTaken(value);
             },
             fastForward: (ms) => {
                 game?.debugAdvanceTime(ms);
@@ -154,58 +130,30 @@ class Game {
         syncNow(this.runtime, Date.now());
         const outcome = applyAction(this.state, this.runtime, action);
         this.applyLogs(outcome.logs);
-        this.render();
-    }
-    enterLocation(targetId) {
-        const prevStage = this.state.stage;
-        const outcome = applyEnterLocation(this.state, targetId);
-        this.applyLogs(outcome.logs);
-        if (prevStage !== "DEMO_END" && this.state.stage === "DEMO_END") {
+        if (this.state.stage === "DEMO_END") {
             this.stopLoop();
             this.ui.setDemoVisible(true);
         }
         this.render();
     }
-    debugBoostVitals() {
-        this.state.started = true;
-        this.state.heat = 35;
-        this.state.health = 45;
-        this.state.rooms.dark_room.lookUnlocked = true;
-        if (this.state.stage === "LIFE_START") {
-            this.state.stage = "LOOK_UNLOCKED";
-            this.startLoop();
-            this.ui.setWakeVisible(false);
+    enterLocation(targetId) {
+        const previousStage = this.state.stage;
+        const outcome = applyEnterLocation(this.state, targetId);
+        this.applyLogs(outcome.logs);
+        if (previousStage !== "DEMO_END" && this.state.stage === "DEMO_END") {
+            this.stopLoop();
+            this.ui.setDemoVisible(true);
         }
         this.render();
     }
-    debugUnlockLook() {
-        this.state.started = true;
-        this.state.heat = 30;
-        this.state.health = 30;
-        this.state.rooms.dark_room.lookUnlocked = true;
-        if (this.state.stage === "LIFE_START") {
-            this.state.stage = "LOOK_UNLOCKED";
-            this.startLoop();
-            this.ui.setWakeVisible(false);
+    debugSetRoom(roomId) {
+        this.state.currentRoomId = roomId;
+        if (roomId === ROOM_CONTROL_ROOM) {
+            this.state.rooms.control_room.entered = true;
         }
-        this.render();
-    }
-    debugJumpReveal3() {
-        this.state.started = true;
-        const darkRoom = this.state.rooms.dark_room;
-        darkRoom.lookUnlocked = true;
-        darkRoom.revealStep = 3;
-        darkRoom.bandTaken = true;
-        darkRoom.displayName = "A DARK ROOM";
-        if (!this.state.inventory.items.includes("band")) {
-            this.state.inventory.items.push("band");
+        if (roomId === ROOM_POD_ROOM) {
+            this.state.rooms.pod_room.entered = true;
         }
-        this.state.navUnlocked = true;
-        this.state.currentRoomId = ROOM_DARK_ROOM;
-        this.state.heatCap = 120;
-        this.state.stage = "NAV_UNLOCKED";
-        this.startLoop();
-        this.ui.setWakeVisible(false);
         this.render();
     }
     debugSetHeat(value) {
@@ -216,113 +164,10 @@ class Game {
         this.state.health = Math.max(0, Math.min(this.state.maxHealth, value));
         this.render();
     }
-    debugSetHeatCap(value) {
-        this.state.heatCap = Math.max(1, value);
-        this.render();
-    }
     debugSetTimeMinutes(value) {
         const total = 24 * 60;
         const wrapped = ((Math.floor(value) % total) + total) % total;
         this.state.timeMinutes = wrapped;
-        this.render();
-    }
-    debugSetRoom(roomId) {
-        if (roomId !== ROOM_DARK_ROOM && roomId !== ROOM_DARKNESS) {
-            return;
-        }
-        this.state.currentRoomId = roomId;
-        if (roomId === ROOM_DARKNESS) {
-            this.state.rooms.darkness.entered = true;
-        }
-        this.render();
-    }
-    debugSetRevealStep(step) {
-        const clamped = Math.max(0, Math.min(3, Math.floor(step)));
-        const darkRoom = this.state.rooms.dark_room;
-        darkRoom.revealStep = clamped;
-        darkRoom.podRoomRevealed = false;
-        if (clamped > 0) {
-            darkRoom.lookUnlocked = true;
-        }
-        if (clamped === 0) {
-            darkRoom.displayName = "DARKNESS";
-            this.state.navUnlocked = false;
-            this.state.stage = "DARKNESS";
-        }
-        else if (clamped === 1) {
-            darkRoom.displayName = "A DARK SPACE";
-            this.state.navUnlocked = false;
-            this.state.stage = "REVEAL_1";
-        }
-        else if (clamped === 2) {
-            darkRoom.displayName = "A DARK SPACE";
-            this.state.navUnlocked = false;
-            this.state.stage = darkRoom.bandTaken ? "BAND_TAKEN" : "BAND_AVAILABLE";
-        }
-        else {
-            darkRoom.displayName = "A DARK ROOM";
-            this.state.navUnlocked = true;
-            this.state.stage = "NAV_UNLOCKED";
-        }
-        this.render();
-    }
-    debugSetFeelStep(step) {
-        const clamped = Math.max(0, Math.min(5, Math.floor(step)));
-        const darkness = this.state.rooms.darkness;
-        darkness.feelStep = clamped;
-        darkness.pullLeverUnlocked = clamped >= 2;
-        darkness.partialDoorDiscovered = clamped >= 4 || darkness.partialDoorDiscovered;
-        darkness.tabletDiscovered = clamped >= 5 || darkness.tabletDiscovered;
-        this.render();
-    }
-    debugSetLookStep(step) {
-        const clamped = Math.max(0, Math.min(4, Math.floor(step)));
-        const darkness = this.state.rooms.darkness;
-        darkness.lookStep = clamped;
-        if (clamped < 3) {
-            darkness.inspectTerminalsStep = 0;
-        }
-        if (clamped >= 1) {
-            darkness.displayName = "A DIMLY LIT ROOM";
-        }
-        if (clamped >= 3) {
-            darkness.displayName = "TERMINAL ROOM";
-        }
-        if (clamped >= 2) {
-            darkness.partialDoorDiscovered = true;
-        }
-        if (clamped >= 4) {
-            darkness.tabletDiscovered = true;
-        }
-        this.render();
-    }
-    debugSetNavUnlocked(value) {
-        this.state.navUnlocked = value;
-        if (value && this.state.stage === "DARKNESS") {
-            this.state.stage = "NAV_UNLOCKED";
-        }
-        this.render();
-    }
-    debugSetLeverPulled(value) {
-        this.state.rooms.darkness.leverPulled = value;
-        this.render();
-    }
-    debugSetPullLeverUnlocked(value) {
-        this.state.rooms.darkness.pullLeverUnlocked = value;
-        this.render();
-    }
-    debugSetPartialDoorDiscovered(value) {
-        this.state.rooms.darkness.partialDoorDiscovered = value;
-        this.render();
-    }
-    debugSetTabletTaken(value) {
-        const darkness = this.state.rooms.darkness;
-        darkness.tabletDiscovered = darkness.tabletDiscovered || value;
-        darkness.tabletTaken = value;
-        this.state.playerName = value ? "???" : "_____";
-        if (value && !this.state.inventory.items.includes("tablet")) {
-            this.state.inventory.items.push("tablet");
-        }
         this.render();
     }
     debugAdvanceTime(ms) {
@@ -343,6 +188,17 @@ class Game {
         }
         this.startLoop();
     }
+    toggleTickLoop() {
+        if (this.loopTimer === null) {
+            if (this.state.stage === "DEMO_END" || this.state.stage === "DEATH_PENDING" || !this.state.started) {
+                return false;
+            }
+            this.startLoop();
+            return true;
+        }
+        this.stopLoop();
+        return false;
+    }
     startLoop() {
         if (this.loopTimer !== null) {
             return;
@@ -361,10 +217,10 @@ class Game {
         const now = Date.now();
         const delta = now - this.lastTickMs;
         this.lastTickMs = now;
-        const prevStage = this.state.stage;
+        const previousStage = this.state.stage;
         const outcome = advanceTime(this.state, this.runtime, delta, this.rng);
         this.applyLogs(outcome.logs);
-        if (prevStage !== "DEATH_PENDING" && this.state.stage === "DEATH_PENDING") {
+        if (previousStage !== "DEATH_PENDING" && this.state.stage === "DEATH_PENDING") {
             this.handleDeathTransition();
             return;
         }
@@ -385,10 +241,11 @@ class Game {
         this.ui.setPlayerName(this.state.playerName);
         this.ui.setRoomTitle(uiState.roomTitle);
         this.ui.setActions(uiState.actions);
-        this.ui.setVitals(this.state.rooms.dark_room.bandTaken, uiState.vitals);
+        this.ui.setVitals(this.state.rooms.pod_room.bandTaken, uiState.vitals);
         this.ui.setStorage(uiState.storage);
         this.ui.setAiPanel(uiState.aiPanel);
-        this.ui.setMap(false, "");
+        this.ui.setPowerPanel(uiState.powerPanel);
+        this.ui.setMap(uiState.mapPanel.visible, uiState.mapPanel.text);
         this.ui.setNavigation(uiState.navigation);
         this.ui.setDeathVisible(this.state.stage === "DEATH_PENDING");
         this.ui.setDemoVisible(this.state.demoComplete);
