@@ -1,0 +1,128 @@
+{
+  "runSeed": 604,
+  "echoId": 3,
+  "stage": "RUNNING",
+  "started": true,
+  "currentRoomId": "power_station",
+  "playerName": "_____",
+  "rooms": {
+    "pod_room": {
+      "id": "pod_room",
+      "displayName": "A DARK ROOM",
+      "descriptorName": "DARKNESS",
+      "trueName": "POD ROOM",
+      "discovered": false,
+      "entered": true,
+      "lookUnlocked": true,
+      "revealStep": 3,
+      "bandTaken": false,
+      "podRoomRevealed": false
+    },
+    "control_room": {
+      "id": "control_room",
+      "displayName": "CONTROL ROOM",
+      "descriptorName": "DARKNESS",
+      "trueName": "CONTROL ROOM",
+      "discovered": true,
+      "entered": true,
+      "feelStep": 2,
+      "lookStep": 3,
+      "leverPulled": true,
+      "pullLeverUnlocked": true,
+      "partialDoorDiscovered": true,
+      "tabletDiscovered": false,
+      "tabletTaken": false,
+      "inspectTerminalsStep": 2
+    },
+    "central_hub": {
+      "id": "central_hub",
+      "displayName": "CENTRAL HUB",
+      "descriptorName": "A SHADOWED PASSAGE",
+      "trueName": "CENTRAL HUB",
+      "discovered": true,
+      "entered": true,
+      "lookStep": 1,
+      "collapseTriggered": true,
+      "livingQuartersCollapsed": true
+    },
+    "research_lab": {
+      "id": "research_lab",
+      "displayName": "RESEARCH LAB",
+      "descriptorName": "A RUINED SPACE",
+      "trueName": "RESEARCH LAB",
+      "discovered": true,
+      "entered": true,
+      "lookStep": 1,
+      "restrictedDoorInspected": false,
+      "partialDoorDiscovered": false
+    },
+    "power_station": {
+      "id": "power_station",
+      "displayName": "POWER STATION",
+      "descriptorName": "A FLICKERING CHAMBER",
+      "trueName": "POWER STATION",
+      "discovered": true,
+      "entered": true,
+      "lookStep": 2,
+      "controlPanelFound": true,
+      "controlPanelInspected": true,
+      "allocationViewOpen": true
+    },
+    "maintenance_bay": {
+      "id": "maintenance_bay",
+      "displayName": "A SERVICE PASSAGE",
+      "descriptorName": "A SERVICE PASSAGE",
+      "trueName": "MAINTENANCE BAY",
+      "discovered": false,
+      "entered": false,
+      "lookStep": 0,
+      "movementInspected": false,
+      "droidInspected": false,
+      "toolkitUnlocked": false,
+      "toolkitFound": false,
+      "toolkitTaken": false,
+      "wiresRepaired": false
+    }
+  },
+  "inventory": {
+    "items": [],
+    "resources": {}
+  },
+  "ai": {
+    "unlocked": true,
+    "online": false,
+    "bootAnnounced": false,
+    "queryIndex": 0,
+    "waitingForDroidInspection": false,
+    "blockedNoNewInfoShown": false,
+    "finalNoNewInfoShown": false,
+    "status": "OFFLINE",
+    "reason": "EMERGENCY POWER RESERVES INSUFFICIENT",
+    "offlineAnnounced": true
+  },
+  "power": {
+    "totalEmergencyAdjustable": 5,
+    "availableEmergency": 0,
+    "emergencyAllocation": {
+      "pod_room": 1,
+      "control_room": 1,
+      "life_support": 1,
+      "med_bay": 1,
+      "maintenance_bay": 1,
+      "restricted_lab": 3
+    },
+    "generalAllocationUnlocked": false
+  },
+  "heat": 45,
+  "heatCap": 20,
+  "health": 40,
+  "maxHealth": 100,
+  "timeMinutes": 180,
+  "stokeCount": 0,
+  "navUnlocked": true,
+  "demoComplete": false,
+  "thawLineShown": false,
+  "growsLineShown": false,
+  "warmLineShown": false,
+  "reserveLimitLogged": false
+}

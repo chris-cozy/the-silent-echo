@@ -9,12 +9,12 @@ import {
   createInitialRuntime,
   createInitialState,
   deriveUiState,
-  syncNow,
-  ROOM_DARKNESS,
-  ROOM_DARK_ROOM
+  ROOM_CONTROL_ROOM,
+  ROOM_POD_ROOM,
+  syncNow
 } from "./engine.js";
 import type { ActionCommand, EngineLogEvent, EngineRuntime } from "./engine.js";
-import { GameState, RoomId } from "./types.js";
+import type { GameState, RoomId } from "./types.js";
 
 const BOOT_LINES = [
   "SYNCING ECHO MEMORY...",
@@ -60,16 +60,23 @@ export async function startGame(): Promise<void> {
   game = new Game(ui);
   game.init();
 
+  const tickToggle = document.getElementById("tick-toggle") as HTMLButtonElement | null;
+  if (import.meta.env.DEV && tickToggle) {
+    tickToggle.classList.remove("is-hidden");
+    tickToggle.textContent = "PAUSE TICK";
+    tickToggle.addEventListener("click", () => {
+      if (!game) {
+        return;
+      }
+      const running = game.toggleTickLoop();
+      tickToggle.textContent = running ? "PAUSE TICK" : "RESUME TICK";
+    });
+  }
+
   if (import.meta.env.DEV) {
     const debugApi: DebugApi = {
-      boostVitals: () => {
-        game?.debugBoostVitals();
-      },
-      unlockLook: () => {
-        game?.debugUnlockLook();
-      },
-      jumpReveal3: () => {
-        game?.debugJumpReveal3();
+      setRoom: (roomId: RoomId) => {
+        game?.debugSetRoom(roomId);
       },
       setHeat: (value: number) => {
         game?.debugSetHeat(value);
@@ -77,38 +84,8 @@ export async function startGame(): Promise<void> {
       setHealth: (value: number) => {
         game?.debugSetHealth(value);
       },
-      setHeatCap: (value: number) => {
-        game?.debugSetHeatCap(value);
-      },
       setTimeMinutes: (value: number) => {
         game?.debugSetTimeMinutes(value);
-      },
-      setRoom: (roomId: RoomId) => {
-        game?.debugSetRoom(roomId);
-      },
-      setRevealStep: (step: number) => {
-        game?.debugSetRevealStep(step);
-      },
-      setFeelStep: (step: number) => {
-        game?.debugSetFeelStep(step);
-      },
-      setLookStep: (step: number) => {
-        game?.debugSetLookStep(step);
-      },
-      setNavUnlocked: (value: boolean) => {
-        game?.debugSetNavUnlocked(value);
-      },
-      setLeverPulled: (value: boolean) => {
-        game?.debugSetLeverPulled(value);
-      },
-      setPullLeverUnlocked: (value: boolean) => {
-        game?.debugSetPullLeverUnlocked(value);
-      },
-      setPartialDoorDiscovered: (value: boolean) => {
-        game?.debugSetPartialDoorDiscovered(value);
-      },
-      setTabletTaken: (value: boolean) => {
-        game?.debugSetTabletTaken(value);
       },
       fastForward: (ms: number) => {
         game?.debugAdvanceTime(ms);
@@ -126,22 +103,10 @@ export async function startGame(): Promise<void> {
 }
 
 type DebugApi = {
-  boostVitals: () => void;
-  unlockLook: () => void;
-  jumpReveal3: () => void;
+  setRoom: (roomId: RoomId) => void;
   setHeat: (value: number) => void;
   setHealth: (value: number) => void;
-  setHeatCap: (value: number) => void;
   setTimeMinutes: (value: number) => void;
-  setRoom: (roomId: RoomId) => void;
-  setRevealStep: (step: number) => void;
-  setFeelStep: (step: number) => void;
-  setLookStep: (step: number) => void;
-  setNavUnlocked: (value: boolean) => void;
-  setLeverPulled: (value: boolean) => void;
-  setPullLeverUnlocked: (value: boolean) => void;
-  setPartialDoorDiscovered: (value: boolean) => void;
-  setTabletTaken: (value: boolean) => void;
   fastForward: (ms: number) => void;
   pauseLoop: () => void;
   resumeLoop: () => void;
@@ -222,15 +187,8 @@ class Game {
     syncNow(this.runtime, Date.now());
     const outcome = applyAction(this.state, this.runtime, action as ActionCommand);
     this.applyLogs(outcome.logs);
-    this.render();
-  }
 
-  enterLocation(targetId: string): void {
-    const prevStage = this.state.stage;
-    const outcome = applyEnterLocation(this.state, targetId);
-    this.applyLogs(outcome.logs);
-
-    if (prevStage !== "DEMO_END" && this.state.stage === "DEMO_END") {
+    if (this.state.stage === "DEMO_END") {
       this.stopLoop();
       this.ui.setDemoVisible(true);
     }
@@ -238,48 +196,27 @@ class Game {
     this.render();
   }
 
-  debugBoostVitals(): void {
-    this.state.started = true;
-    this.state.heat = 35;
-    this.state.health = 45;
-    this.state.rooms.dark_room.lookUnlocked = true;
-    if (this.state.stage === "LIFE_START") {
-      this.state.stage = "LOOK_UNLOCKED";
-      this.startLoop();
-      this.ui.setWakeVisible(false);
+  enterLocation(targetId: string): void {
+    const previousStage = this.state.stage;
+    const outcome = applyEnterLocation(this.state, targetId);
+    this.applyLogs(outcome.logs);
+
+    if (previousStage !== "DEMO_END" && this.state.stage === "DEMO_END") {
+      this.stopLoop();
+      this.ui.setDemoVisible(true);
     }
+
     this.render();
   }
 
-  debugUnlockLook(): void {
-    this.state.started = true;
-    this.state.heat = 30;
-    this.state.health = 30;
-    this.state.rooms.dark_room.lookUnlocked = true;
-    if (this.state.stage === "LIFE_START") {
-      this.state.stage = "LOOK_UNLOCKED";
-      this.startLoop();
-      this.ui.setWakeVisible(false);
+  debugSetRoom(roomId: RoomId): void {
+    this.state.currentRoomId = roomId;
+    if (roomId === ROOM_CONTROL_ROOM) {
+      this.state.rooms.control_room.entered = true;
     }
-    this.render();
-  }
-
-  debugJumpReveal3(): void {
-    this.state.started = true;
-    const darkRoom = this.state.rooms.dark_room;
-    darkRoom.lookUnlocked = true;
-    darkRoom.revealStep = 3;
-    darkRoom.bandTaken = true;
-    darkRoom.displayName = "A DARK ROOM";
-    if (!this.state.inventory.items.includes("band")) {
-      this.state.inventory.items.push("band");
+    if (roomId === ROOM_POD_ROOM) {
+      this.state.rooms.pod_room.entered = true;
     }
-    this.state.navUnlocked = true;
-    this.state.currentRoomId = ROOM_DARK_ROOM;
-    this.state.heatCap = 120;
-    this.state.stage = "NAV_UNLOCKED";
-    this.startLoop();
-    this.ui.setWakeVisible(false);
     this.render();
   }
 
@@ -293,122 +230,10 @@ class Game {
     this.render();
   }
 
-  debugSetHeatCap(value: number): void {
-    this.state.heatCap = Math.max(1, value);
-    this.render();
-  }
-
   debugSetTimeMinutes(value: number): void {
     const total = 24 * 60;
     const wrapped = ((Math.floor(value) % total) + total) % total;
     this.state.timeMinutes = wrapped;
-    this.render();
-  }
-
-  debugSetRoom(roomId: RoomId): void {
-    if (roomId !== ROOM_DARK_ROOM && roomId !== ROOM_DARKNESS) {
-      return;
-    }
-    this.state.currentRoomId = roomId;
-    if (roomId === ROOM_DARKNESS) {
-      this.state.rooms.darkness.entered = true;
-    }
-    this.render();
-  }
-
-  debugSetRevealStep(step: number): void {
-    const clamped = Math.max(0, Math.min(3, Math.floor(step)));
-    const darkRoom = this.state.rooms.dark_room;
-    darkRoom.revealStep = clamped;
-    darkRoom.podRoomRevealed = false;
-    if (clamped > 0) {
-      darkRoom.lookUnlocked = true;
-    }
-
-    if (clamped === 0) {
-      darkRoom.displayName = "DARKNESS";
-      this.state.navUnlocked = false;
-      this.state.stage = "DARKNESS";
-    } else if (clamped === 1) {
-      darkRoom.displayName = "A DARK SPACE";
-      this.state.navUnlocked = false;
-      this.state.stage = "REVEAL_1";
-    } else if (clamped === 2) {
-      darkRoom.displayName = "A DARK SPACE";
-      this.state.navUnlocked = false;
-      this.state.stage = darkRoom.bandTaken ? "BAND_TAKEN" : "BAND_AVAILABLE";
-    } else {
-      darkRoom.displayName = "A DARK ROOM";
-      this.state.navUnlocked = true;
-      this.state.stage = "NAV_UNLOCKED";
-    }
-
-    this.render();
-  }
-
-  debugSetFeelStep(step: number): void {
-    const clamped = Math.max(0, Math.min(5, Math.floor(step)));
-    const darkness = this.state.rooms.darkness;
-    darkness.feelStep = clamped;
-    darkness.pullLeverUnlocked = clamped >= 2;
-    darkness.partialDoorDiscovered = clamped >= 4 || darkness.partialDoorDiscovered;
-    darkness.tabletDiscovered = clamped >= 5 || darkness.tabletDiscovered;
-    this.render();
-  }
-
-  debugSetLookStep(step: number): void {
-    const clamped = Math.max(0, Math.min(4, Math.floor(step)));
-    const darkness = this.state.rooms.darkness;
-    darkness.lookStep = clamped;
-    if (clamped < 3) {
-      darkness.inspectTerminalsStep = 0;
-    }
-    if (clamped >= 1) {
-      darkness.displayName = "A DIMLY LIT ROOM";
-    }
-    if (clamped >= 3) {
-      darkness.displayName = "TERMINAL ROOM";
-    }
-    if (clamped >= 2) {
-      darkness.partialDoorDiscovered = true;
-    }
-    if (clamped >= 4) {
-      darkness.tabletDiscovered = true;
-    }
-    this.render();
-  }
-
-  debugSetNavUnlocked(value: boolean): void {
-    this.state.navUnlocked = value;
-    if (value && this.state.stage === "DARKNESS") {
-      this.state.stage = "NAV_UNLOCKED";
-    }
-    this.render();
-  }
-
-  debugSetLeverPulled(value: boolean): void {
-    this.state.rooms.darkness.leverPulled = value;
-    this.render();
-  }
-
-  debugSetPullLeverUnlocked(value: boolean): void {
-    this.state.rooms.darkness.pullLeverUnlocked = value;
-    this.render();
-  }
-
-  debugSetPartialDoorDiscovered(value: boolean): void {
-    this.state.rooms.darkness.partialDoorDiscovered = value;
-    this.render();
-  }
-
-  debugSetTabletTaken(value: boolean): void {
-    const darkness = this.state.rooms.darkness;
-    darkness.tabletDiscovered = darkness.tabletDiscovered || value;
-    darkness.tabletTaken = value;
-    this.state.playerName = value ? "???" : "_____";
-    if (value && !this.state.inventory.items.includes("tablet")) {
-      this.state.inventory.items.push("tablet");
-    }
     this.render();
   }
 
@@ -431,6 +256,19 @@ class Game {
       return;
     }
     this.startLoop();
+  }
+
+  toggleTickLoop(): boolean {
+    if (this.loopTimer === null) {
+      if (this.state.stage === "DEMO_END" || this.state.stage === "DEATH_PENDING" || !this.state.started) {
+        return false;
+      }
+      this.startLoop();
+      return true;
+    }
+
+    this.stopLoop();
+    return false;
   }
 
   private startLoop(): void {
@@ -456,11 +294,11 @@ class Game {
     const delta = now - this.lastTickMs;
     this.lastTickMs = now;
 
-    const prevStage = this.state.stage;
+    const previousStage = this.state.stage;
     const outcome = advanceTime(this.state, this.runtime, delta, this.rng);
     this.applyLogs(outcome.logs);
 
-    if (prevStage !== "DEATH_PENDING" && this.state.stage === "DEATH_PENDING") {
+    if (previousStage !== "DEATH_PENDING" && this.state.stage === "DEATH_PENDING") {
       this.handleDeathTransition();
       return;
     }
@@ -482,14 +320,16 @@ class Game {
   private render(): void {
     syncNow(this.runtime, Date.now());
     const uiState = deriveUiState(this.state, this.runtime);
+
     this.ui.setEchoId(this.state.echoId);
     this.ui.setPlayerName(this.state.playerName);
     this.ui.setRoomTitle(uiState.roomTitle);
     this.ui.setActions(uiState.actions);
-    this.ui.setVitals(this.state.rooms.dark_room.bandTaken, uiState.vitals);
+    this.ui.setVitals(this.state.rooms.pod_room.bandTaken, uiState.vitals);
     this.ui.setStorage(uiState.storage);
     this.ui.setAiPanel(uiState.aiPanel);
-    this.ui.setMap(false, "");
+    this.ui.setPowerPanel(uiState.powerPanel);
+    this.ui.setMap(uiState.mapPanel.visible, uiState.mapPanel.text);
     this.ui.setNavigation(uiState.navigation);
     this.ui.setDeathVisible(this.state.stage === "DEATH_PENDING");
     this.ui.setDemoVisible(this.state.demoComplete);

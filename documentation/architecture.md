@@ -1,89 +1,79 @@
 # Architecture
 
-## High-level runtime flow
+## Runtime flow
 
-1. `src/main.ts` imports styles and starts the game.
-2. `startGame()` in `src/game/game.ts` creates a `UI` instance and a `Game` instance.
-3. UI callbacks (`wake`, `action`, `enter`, `restart`) call game methods.
-4. Game mutates internal state and re-renders UI each tick/event.
+1. `src/main.ts` starts `startGame()`.
+2. `src/game/game.ts` creates `UI` and `Game` instances and owns the tick loop.
+3. Engine functions in `src/game/engine.ts` mutate deterministic state and return log events.
+4. `Game.render()` derives a UI model (`deriveUiState`) and pushes panel state into `UI`.
 
-## Core modules
+## Core state model
 
-### `src/game/game.ts`
+`GameState` now has five major domains:
 
-Owns game state and progression logic:
-- intro state machine,
-- survival timers and accumulators,
-- action handling,
-- unlock gates,
-- render payload construction for UI.
+- `rooms`: room-local discovery/action flags for `pod_room`, `control_room`, `central_hub`, `research_lab`, `power_station`, `maintenance_bay`.
+- `power`: emergency allocation values, locked Restricted Lab allocation, and reallocatable pool.
+- `ai`: unlock/online/query progression and branch gating state.
+- `inventory`: persistent items/resources shown in STORAGE.
+- survival runtime: heat/health/time plus intro progression and end/death markers.
 
-Important characteristics:
-- fixed simulation tick (`TICK_MS = 250`),
-- separate accumulators for heat decay, health regen/drain, ambient events, and clock time,
-- deterministic log variation per run via a seeded RNG.
+## Map graph model
 
-### `src/game/ui.ts`
+Traversal is graph-based in `engine.ts`:
 
-Responsible for DOM rendering and UX effects:
-- action buttons and cooldown display,
-- panel visibility,
-- boot animation,
-- navigation panel,
-- typewriter log queue.
+- Edges carry a door state: `open`, `jammed`, `sealed`, `collapsed`.
+- Navigation is rendered in a fixed, static order once entries are discovered.
+- Once a nav entry is discovered it remains visible, even when not currently adjacent.
+- Door status drives nav button affordance (`ENTER`, `JAMMED`, `SEALED`, `BLOCKED`, `UNREACHABLE`).
+- Room transitions are valid only over `open` edges to real rooms.
 
-Design choices:
-- immediate action trigger uses `pointerdown` for responsiveness,
-- newest log entries are inserted at the top,
-- queue backpressure accelerates typing when many entries are pending.
+Implemented route spine:
 
-### `src/game/types.ts`
+- `POD ROOM <-> CONTROL ROOM <-> CENTRAL HUB <-> RESEARCH LAB <-> POWER STATION`
+- `RESEARCH LAB <-> MAINTENANCE BAY`
+- blocked edges surfaced in nav: `LIFE SUPPORT` (jammed), `AIRLOCK` (sealed), `LIVING QUARTERS` (collapsed), `RESTRICTED LAB` (sealed)
 
-Shared data contracts for:
-- runtime state (`GameState`),
-- intro stage enum (`IntroStage`),
-- content data interfaces (`RoomDef`, `EventDef`, `RecipeDef`).
+## Discovery and naming
 
-### `src/game/logVariants.ts`
+Each major room has:
 
-Narrative log variant system:
-- weighted random phrase selection,
-- anti-repeat behavior per key,
-- sticky variants for repeated actions that should remain tonally consistent,
-- seeded PRNG for reproducible run flavoring.
+- `descriptorName` shown initially.
+- `trueName` shown only after meaningful discovery.
+- `displayName` used by the room header and navigation labels.
+- Names are globally consistent: once `displayName` changes, all nav entries use that same name.
 
-### `src/game/data.ts` and `src/game/save.ts`
+This keeps unknown spaces obscured until player interaction reveals context.
 
-Infrastructure modules currently available for future integration:
-- JSON bundle loading from `/data/*.json`,
-- `localStorage` state persistence helpers.
+## Allocation and control-room dependency
+
+Emergency allocation is a deterministic system:
+
+- Adjustable pool starts at 0 and increases only by deallocation.
+- `restricted_lab` allocation is locked by protocol.
+- Failure-state rooms (`pod_room`, `life_support`, `med_bay`) expose inspectable reasons.
+
+Derived effects:
+
+- Control Room functional threshold: `allocation(control_room) >= 3`.
+- Maintenance threshold for boot stability: `allocation(maintenance_bay) >= 2`.
+
+Dropping Control Room below threshold after AI boot regresses room capability (AI hidden, FEEL path restored).
+
+## AI state machine overlay
+
+The AI progression overlays room and allocation state:
+
+- offline panel unlocks from terminal inspection.
+- offline reason includes dynamic reserve percentage from control-room allocation.
+- online boot occurs once allocation threshold is met and posts one-time greeting.
+- `QUERY` advances a scripted chain with a branch on `droid_inspected`.
 
 ## UI composition
 
-Main UI structure in `index.html`:
-- header (`Echo-03`, player placeholder),
-- left stack (room/actions, vitals, map, navigation),
-- right log panel,
-- overlays (wake, boot, demo end),
-- visual layers (scanlines/noise/glow).
+Panels are tabbed and derived, not manually toggled by script branches:
 
-Current behavior notes:
-- map panel exists but is rendered hidden in the current loop,
-- nav panel appears only when reveal progression reaches doorway unlock,
-- vitals panel appears after wrist band acquisition.
-
-## Data layout
-
-- `public/data/rooms.json`
-- `public/data/events.json`
-- `public/data/recipes.json`
-
-These are included in builds and can be fetched at runtime.
-
-## Build artifacts and source-of-truth
-
-- TypeScript source is in `src/**/*.ts`.
-- Compiled JS sidecars currently exist in `src/**/*.js`.
-- Production bundle output goes to `dist/`.
-
-Contributors should treat `.ts` files as canonical unless a deliberate JS-only change is required.
+- Room/action panel (left)
+- Systems tab panel (`VITALS BAND`, `STORAGE`)
+- Operations tab panel (`AI`, `NAV`)
+- In-room tabbing for `ACTIONS` and `POWER` (power tab only functions in the power room)
+- LOG panel (right)
